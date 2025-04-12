@@ -1,0 +1,9 @@
+pyautogui
+pytesseract
+Pillow
+requests
+beautifulsoup4
+# Optional: Add a GUI library like PyQt5 or Kivy if tkinter is not sufficient
+# PyQt5
+# Kivy
+# Add other dependencies as needed
