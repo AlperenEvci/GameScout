@@ -4,3 +4,7 @@
 /test_screenshot.png
 /venv
 /window_test_screenshot.png
+.env
+__pycache__/
+*.py[cod]
+*$py.class

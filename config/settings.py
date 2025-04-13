@@ -2,13 +2,19 @@
 
 import os
 import shutil
+from dotenv import load_dotenv
+
+# .env dosyasından değerleri yükle (eğer varsa)
+# .env dosyası yoksa, bu işlem sessizce başarısız olur ve ortam değişkenlerini kullanmaya devam eder
+dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+load_dotenv(dotenv_path)
 
 # --- General Settings ---
 APP_NAME = "GameScout"
 VERSION = "0.1.0"
 
 # --- Screen Capture & OCR ---
-SCREENSHOT_INTERVAL_SECONDS = 5  # How often to capture the screen
+SCREENSHOT_INTERVAL_SECONDS = 15  # How often to capture the screen
 
 # Set the path to Tesseract - automatically tries to find it if possible
 def find_tesseract_path():
@@ -32,7 +38,7 @@ def find_tesseract_path():
     return None
 
 TESSERACT_CMD = find_tesseract_path()
-OCR_LANGUAGE = 'eng'  # Changed from 'eng' to 'tur' for Turkish language support
+OCR_LANGUAGE = 'tur'  # Set to 'tur' for Turkish language support
 # Optional: Define specific screen region for capture (left, top, width, height)
 CAPTURE_REGION = None # Set to None to capture the primary monitor
 
@@ -52,6 +58,41 @@ SCRAPER_USER_AGENT = f"{APP_NAME}/{VERSION} (GameScout Application)" # Be polite
 # --- Agent Settings ---
 # Placeholder for character class or other agent logic triggers
 DEFAULT_CHARACTER_CLASS = "Wizard"
+
+# --- LLM API Settings ---
+# Set to "none" to disable, or choose "openai", "gemini" or "azure"
+LLM_PROVIDER = "gemini"  # Set to "openai", "gemini", "azure" or "none"
+# Get your API key from https://ai.google.dev/ (for Gemini) or environment
+LLM_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+# Set LLM API endpoint - updated with newer model support
+LLM_API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent"
+# Model to use 
+LLM_MODEL = "gemini-1.5-pro"  # Using standard Gemini 1.5 Pro model with free quota
+# Temperature (randomness) - lower for more consistent responses
+LLM_TEMPERATURE = 0.7
+# Maximum tokens in response
+LLM_MAX_TOKENS = 300
+# System prompt to set context for LLM
+LLM_SYSTEM_PROMPT = """Sen Baldur's Gate 3 oyunu için bir akıllı asistansın. 
+Oyuncuya yararlı bilgiler, taktikler ve ipuçları ver. Özellikle oyuncunun karakterinin sınıfına 
+ve bulunduğu bölgeye göre kişiselleştirilmiş öneriler yap. 
+Kısa ve öz cümleler kullan. Önerileri maddeler halinde ver."""
+
+# Prompt template for generating recommendations
+LLM_PROMPT_TEMPLATE = """Şu an Baldur's Gate 3 oyunundayım.
+Bölge: {region}
+Karakter Sınıfı: {character_class}
+Tespit Edilen Anahtar Kelimeler: {keywords}
+
+Yakındaki Önemli Noktalar:
+{points_of_interest}
+
+Bölge Görevleri:
+{quests}
+
+Bu bilgileri kullanarak bana oyundaki mevcut durumuma göre 3-5 kısa, pratik öneri/tavsiye ver. 
+Bulunduğum bölgedeki değerli eşyaları, taktikleri, görevleri veya karakter sınıfıma özgü ipuçlarını içersin. 
+Tavsiyeler kısa ve direkt olsun."""
 
 # --- UI Settings ---
 HUD_UPDATE_INTERVAL_MS = 1000 # How often the HUD refreshes

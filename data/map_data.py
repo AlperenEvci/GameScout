@@ -18,11 +18,24 @@ CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "cache")
 if not os.path.exists(CACHE_DIR):
     os.makedirs(CACHE_DIR)
 
-# Harita veri kaynakları
-MAP_SOURCES = {
-    "fextralife": "https://baldursgate3.wiki.fextralife.com/Maps",
-    "mapgenie": "https://mapgenie.io/baldurs-gate-3/maps/faerun",
-    # Diğer kaynaklar eklenebilir
+# Veri kaynakları
+DATA_SOURCES = {
+    "web_scraping": {
+        "fextralife": "https://baldursgate3.wiki.fextralife.com/Maps",
+        "mapgenie_wilderness": "https://mapgenie.io/baldurs-gate-3/maps/wilderness",
+        "mapgenie_shadow-cursed-lands": "https://mapgenie.io/baldurs-gate-3/maps/shadow-cursed-lands",
+        "mapgenie_baldurs-gate": "https://mapgenie.io/baldurs-gate-3/maps/baldurs-gate",
+    },
+    "web_search": {
+        "enabled": True,
+        "search_engine": "duckduckgo",  # veya "google" ya da başka bir arama motoru
+        "search_template": "Baldur's Gate 3 {region_name} location guide",
+        "max_results": 3
+    },
+    "llm": {
+        "enabled": True,  # LLM entegrasyonunu kullanıp kullanmamak
+        "prompt_template": "Baldur's Gate 3 oyununda {region_name} bölgesi hakkında bilgi ver. Bu bölgedeki önemli noktalar, görevler ve karakterler nelerdir?"
+    }
 }
 
 # Oyun bölgeleri ve koordinat bilgileri
@@ -146,7 +159,7 @@ def load_from_cache(region_name):
     return None
 
 def fetch_fextralife_map_data(region_name):
-    """Fextralife wikisinden harita verilerini çeker."""
+    """Fextralife wikisinden harita verilerini çeker (doğrudan sayfa URL'si ile)."""
     if not region_name:
         return None
     
@@ -155,37 +168,29 @@ def fetch_fextralife_map_data(region_name):
     if cached_data:
         return cached_data
     
-    # Region-specific URL construction
-    safe_region = region_name.replace(" ", "+").replace("'", "%27")
-    search_url = f"https://baldursgate3.wiki.fextralife.com/search?q={safe_region}"
+    # Doğrudan bölge sayfası URL'sini oluştur
+    # Boşlukları '+' ile, kesme işaretini '%27' ile değiştir
+    safe_region_for_url = region_name.replace(" ", "+").replace("'", "%27")
+    region_url = f"https://baldursgate3.wiki.fextralife.com/{safe_region_for_url}"
+    logger.info(f"Attempting to fetch directly from Fextralife URL: {region_url}")
     
     try:
-        # İlk olarak arama sayfasını çek
         headers = {'User-Agent': settings.SCRAPER_USER_AGENT}
-        response = requests.get(search_url, headers=headers, timeout=10)
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Arama sonuçlarından bölgeyle ilgili sayfayı bul
-        results = soup.select('.wiki-content-block a')
-        region_url = None
-        
-        for result in results:
-            if region_name.lower() in result.text.lower():
-                region_url = 'https://baldursgate3.wiki.fextralife.com' + result['href']
-                break
-        
-        if not region_url:
-            logger.warning(f"No specific page found for region: {region_name}")
-            region_url = "https://baldursgate3.wiki.fextralife.com/Maps"
-        
-        # Bölge sayfasını çek
         response = requests.get(region_url, headers=headers, timeout=10)
-        response.raise_for_status()
+        
+        # Sayfa bulunamazsa (404), hata logla ve yerel veriyi dene
+        if response.status_code == 404:
+            logger.warning(f"Direct Fextralife page not found: {region_url}. Falling back to local data.")
+            if region_name in GAME_REGIONS:
+                return GAME_REGIONS[region_name]
+            else:
+                return None
+        
+        response.raise_for_status() # Diğer HTTP hatalarını kontrol et
+        
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # Bölge bilgilerini çıkar
+        # --- Bölge bilgilerini çıkarma mantığı (öncekiyle aynı) ---
         region_data = {
             "name": region_name,
             "description": "",
@@ -266,17 +271,22 @@ def fetch_fextralife_map_data(region_name):
         # Cache'e kaydet
         save_to_cache(region_name, region_data)
         
-        logger.info(f"Successfully fetched map data for region: {region_name}")
+        logger.info(f"Successfully fetched map data for region: {region_name} from direct URL")
         return region_data
         
-    except Exception as e:
-        logger.error(f"Error fetching map data for {region_name}: {e}")
-        
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error fetching direct Fextralife URL {region_url}: {e}")
         # Hata durumunda yerel veriyi kullan
         if region_name in GAME_REGIONS:
-            logger.info(f"Using local data for region: {region_name}")
+            logger.info(f"Using local data for region due to fetch error: {region_name}")
             return GAME_REGIONS[region_name]
-        
+        return None
+    except Exception as e:
+        logger.error(f"Error processing Fextralife data for {region_name}: {e}")
+        # Genel hata durumunda yerel veriyi kullan
+        if region_name in GAME_REGIONS:
+            logger.info(f"Using local data for region due to processing error: {region_name}")
+            return GAME_REGIONS[region_name]
         return None
 
 def get_nearby_points_of_interest(region_name):
