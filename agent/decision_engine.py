@@ -354,7 +354,6 @@ def generate_recommendations(game_state: GameState) -> list[str]:
     """
     logger.debug(f"Generating recommendations for state: {game_state}")
     recommendations = []
-    recommendations_generated_this_cycle = False # Bu döngüde öneri üretilip üretilmediğini takip et
 
     # Zaman kontrolü
     current_time = time.time()
@@ -365,11 +364,9 @@ def generate_recommendations(game_state: GameState) -> list[str]:
     if time_since_last >= 360:
         logger.info("Cooldown period passed. Attempting to generate new recommendations.")
         
-        # --- LLM-based recommendations (New) ---
-        llm_success = False
+        # --- LLM-based recommendations ---
         llm_client = LLMAPIClient()  # Initialize the LLMAPIClient instance
         try:
-            # ... (existing LLM client setup) ...
             if llm_client.is_available():
                 logger.info("Requesting recommendations from LLM API...")
                 llm_recommendations = llm_client.get_recommendation(game_state)
@@ -377,71 +374,16 @@ def generate_recommendations(game_state: GameState) -> list[str]:
                 if llm_recommendations:
                     logger.info(f"Using {len(llm_recommendations)} LLM-generated recommendations")
                     recommendations = [f"AI: {rec}" for rec in llm_recommendations]
-                    llm_success = True
-                    recommendations_generated_this_cycle = True # Öneri üretildi
+                    # Öneri üretildi, son öneri zamanını güncelle
+                    game_state.last_tip_time = current_time
                 else:
-                    logger.warning("LLM API returned no recommendations, falling back to hardcoded tips")
+                    logger.warning("LLM API returned no recommendations")
             else:
-                logger.debug("LLM API not configured, using hardcoded tips")
+                logger.debug("LLM API not configured, no recommendations will be shown")
         except ImportError:
-            logger.warning("LLM module not found, falling back to hardcoded tips")
+            logger.warning("LLM module not found, no recommendations will be shown")
         except Exception as e:
             logger.error(f"Error getting LLM recommendations: {e}", exc_info=True)
-        
-        # --- LLM başarısız olduysa veya kullanılmadıysa yerleşik ipuçlarına dön --- 
-        if not llm_success:
-            logger.debug("Generating hardcoded tips as LLM was not successful or not configured.")
-            # --- Konum bazlı öneriler --- 
-            if game_state.current_region and game_state.nearby_points_of_interest:
-                for poi in game_state.nearby_points_of_interest:
-                    poi_tip = f"Nearby Location: {poi['name']} - {poi['description']}"
-                    if not game_state.was_recently_shown(poi_tip):
-                        recommendations.append(poi_tip)
-                        game_state.add_recent_tip(poi_tip)
-                        recommendations_generated_this_cycle = True
-                        break # Sadece bir tane ekle
-            
-            # --- Bölge görevleri --- 
-            if not recommendations_generated_this_cycle and game_state.region_quests:
-                 for quest in game_state.region_quests:
-                    quest_tip = f"Region Quest: {quest['name']}"
-                    if quest.get('description'):
-                        quest_tip += f" - {quest['description']}"
-                    if not game_state.was_recently_shown(quest_tip):
-                        recommendations.append(quest_tip)
-                        game_state.add_recent_tip(quest_tip)
-                        recommendations_generated_this_cycle = True
-                        break # Sadece bir tane ekle
-
-            # --- Diğer yerleşik ipuçları (Region, Class, Keyword, General) --- 
-            # ... (Mevcut yerleşik ipucu mantığınız buraya gelecek) ...
-            # Örnek: Genel ipucu ekleme
-            if not recommendations_generated_this_cycle:
-                tip_categories = ["general", "combat", "exploration", "social"]
-                category = random.choice(tip_categories)
-                category_tips = BG3_TIPS[category]
-                for _ in range(5):
-                    tip = random.choice(category_tips)
-                    if not game_state.was_recently_shown(tip):
-                        recommendations.append(tip)
-                        game_state.add_recent_tip(tip)
-                        recommendations_generated_this_cycle = True
-                        break
-                # Eğer 5 denemede yeni ipucu bulunamazsa yine de bir tane ekle
-                if not recommendations_generated_this_cycle and category_tips:
-                     tip = random.choice(category_tips)
-                     if tip not in recommendations:
-                         recommendations.append(tip)
-                         game_state.add_recent_tip(tip)
-                         recommendations_generated_this_cycle = True
-
-        # --- Son öneri zamanını SADECE bu döngüde öneri üretildiyse güncelle --- 
-        if recommendations_generated_this_cycle:
-            logger.info("Updating last recommendation time.")
-            game_state.last_tip_time = current_time
-        else:
-            logger.info("No new recommendations generated in this cycle.")
-
     else:
         logger.debug(f"Cooldown active. Skipping recommendation generation. Time remaining: {360 - time_since_last:.2f}s")
         return [] # Bekleme süresindeyken boş liste döndür
