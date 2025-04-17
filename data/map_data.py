@@ -29,7 +29,7 @@ DATA_SOURCES = {
     "web_search": {
         "enabled": True,
         "search_engine": "duckduckgo",  # veya "google" ya da başka bir arama motoru
-        "search_template": "Baldur's Gate 3 {region_name} location guide",
+        "search_template": "Baldur's Gate 3 {region_name} konum rehberi",
         "max_results": 3
     },
     "llm": {
@@ -42,79 +42,79 @@ DATA_SOURCES = {
 GAME_REGIONS = {
     "Ravaged Beach": {
         "points_of_interest": [
-            {"name": "Nautiloid Crash Site", "description": "The Mind Flayer ship crashed here. Search for survivors and useful items."},
-            {"name": "Beach Cave", "description": "A small cave with some basic supplies and your first companion opportunity."},
-            {"name": "US Crash Site", "description": "Another crashed ship section with dangers and loot."}
+            {"name": "Nautiloid Çarpma Bölgesi", "description": "Zihin Yüzücüsü gemisi buraya düştü. Hayatta kalanları ve kullanışlı eşyaları arayın."},
+            {"name": "Sahil Mağarası", "description": "Bazı temel malzemeler ve ilk yoldaş fırsatı bulunan küçük bir mağara."},
+            {"name": "ABD Çarpma Bölgesi", "description": "Tehlikeler ve ganimetlerle dolu başka bir düşmüş gemi bölümü."}
         ],
         "map_coordinates": {"x": 120, "y": 85}
     },
     "Emerald Grove": {
         "points_of_interest": [
-            {"name": "Druid Circle", "description": "Center of the grove where the druids perform their rituals. Speak with Rath here."},
-            {"name": "Tiefling Camp", "description": "Refugees from Elturel. Zevlor leads them and has several quests."},
-            {"name": "Hidden Entrance", "description": "Secret entrance to the Underdark behind a waterfall."},
-            {"name": "Inner Sanctum", "description": "Where Halsin can be found when he returns. Houses the grove's artifacts."}
+            {"name": "Druid Çemberi", "description": "Druidlerin ritüellerini gerçekleştirdiği korunun merkezi. Burada Rath ile konuşun."},
+            {"name": "Tiefling Kampı", "description": "Elturel'den mülteciler. Zevlor onlara liderlik eder ve çeşitli görevleri vardır."},
+            {"name": "Gizli Giriş", "description": "Bir şelalenin arkasında Underdark'a giden gizli giriş."},
+            {"name": "İç Mabet", "description": "Halsin geri döndüğünde bulunabileceği yer. Korunun eserlerini barındırır."}
         ],
         "map_coordinates": {"x": 230, "y": 175} 
     },
     "Blighted Village": {
         "points_of_interest": [
-            {"name": "Windmill", "description": "Check the cellar for valuable items and a mysterious book."},
-            {"name": "Apothecary", "description": "Contains materials for potions and scrolls. Watch for traps."},
-            {"name": "Runestone", "description": "Powerful magic stone. Possible to use in multiple ways."},
-            {"name": "Destroyed Houses", "description": "Many hidden items in destructible objects."}
+            {"name": "Yel Değirmeni", "description": "Değerli eşyalar ve gizemli bir kitap için mahzeni kontrol edin."},
+            {"name": "Eczane", "description": "İksirler ve tomarlar için malzemeler içerir. Tuzaklara dikkat edin."},
+            {"name": "Rün Taşı", "description": "Güçlü büyülü taş. Birden çok şekilde kullanılabilir."},
+            {"name": "Yıkılmış Evler", "description": "Yok edilebilir nesnelerde birçok gizli eşya."}
         ],
         "map_coordinates": {"x": 320, "y": 150}
     },
     "Underdark": {
         "points_of_interest": [
-            {"name": "Myconid Colony", "description": "Peaceful mushroom people who can become allies. Speak with Sovereign Spaw."},
-            {"name": "Selûnite Outpost", "description": "Followers of the goddess Selûne. Contains important quest items."},
-            {"name": "Bulette Cave", "description": "Home to a dangerous bulette. High level loot inside."},
-            {"name": "Grymforge Entrance", "description": "Path leading to the Grymforge. Guarded by duergar."}
+            {"name": "Myconid Kolonisi", "description": "Müttefik olabilecek barışçıl mantar insanlar. Hükümdar Spaw ile konuşun."},
+            {"name": "Selûnite Karakolu", "description": "Tanrıça Selûne'nin takipçileri. Önemli görev eşyaları içerir."},
+            {"name": "Bulette Mağarası", "description": "Tehlikeli bir bulette'nin evi. İçinde yüksek seviyeli ganimetler var."},
+            {"name": "Grymforge Girişi", "description": "Grymforge'a giden yol. Duergar tarafından korunur."}
         ],
         "map_coordinates": {"x": 280, "y": 320}
     },
     "Moonrise Towers": {
         "points_of_interest": [
-            {"name": "Main Gate", "description": "Heavily guarded entrance. Alternative entrances available."},
-            {"name": "Prison Cells", "description": "Contains notable prisoners and important information about the main plot."},
-            {"name": "Central Chamber", "description": "Where the ritual takes place. Critical story location."},
-            {"name": "Secret Library", "description": "Hidden area with valuable lore books and magic items."}
+            {"name": "Ana Kapı", "description": "Ağır korunan giriş. Alternatif girişler mevcut."},
+            {"name": "Zindan Hücreleri", "description": "Dikkat çekici mahkumlar ve ana olay örgüsü hakkında önemli bilgiler içerir."},
+            {"name": "Merkez Oda", "description": "Ritüelin gerçekleştiği yer. Kritik hikaye konumu."},
+            {"name": "Gizli Kütüphane", "description": "Değerli hikaye kitapları ve büyülü eşyalar bulunan gizli alan."}
         ],
         "map_coordinates": {"x": 420, "y": 260}
     },
     "Shadowfell": {
         "points_of_interest": [
-            {"name": "Shar's Temple", "description": "Center of worship for the goddess of darkness. Dangerous but valuable loot."},
-            {"name": "Abandoned Camp", "description": "Former explorer camp with clues about the region."},
-            {"name": "Shadow Portal", "description": "Can be used to access other areas quickly."}
+            {"name": "Shar'ın Tapınağı", "description": "Karanlık tanrıçasına tapınma merkezi. Tehlikeli ama değerli ganimetler."},
+            {"name": "Terk Edilmiş Kamp", "description": "Bölge hakkında ipuçları bulunan eski kaşif kampı."},
+            {"name": "Gölge Portalı", "description": "Diğer alanlara hızlıca erişmek için kullanılabilir."}
         ],
         "map_coordinates": {"x": 380, "y": 340}
     },
     "Grymforge": {
         "points_of_interest": [
-            {"name": "Forge of Grym", "description": "Ancient forge with unique crafting possibilities."},
-            {"name": "Duergar Outpost", "description": "Duergar settlement with possible allies or enemies."},
-            {"name": "Deep Pool", "description": "Contains a hidden passage and valuable resources."}
+            {"name": "Grym Demirhanesi", "description": "Benzersiz zanaat olanaklarına sahip antik demirci ocağı."},
+            {"name": "Duergar Karakolu", "description": "Olası müttefikler veya düşmanlarla duergar yerleşimi."},
+            {"name": "Derin Havuz", "description": "Gizli bir geçit ve değerli kaynaklar içerir."}
         ],
         "map_coordinates": {"x": 340, "y": 380}
     },
     "Last Light Inn": {
         "points_of_interest": [
-            {"name": "Main Hall", "description": "Safe haven in the shadow-cursed lands. Important NPCs gather here."},
-            {"name": "Isobel's Room", "description": "Where you can find Isobel and learn about her connection to the inn."},
-            {"name": "Hidden Cellar", "description": "Secret area with special items and information."}
+            {"name": "Ana Salon", "description": "Gölge-lanetli topraklarda güvenli sığınak. Burada önemli NPC'ler toplanır."},
+            {"name": "Isobel'in Odası", "description": "Isobel'i bulabileceğiniz ve hana bağlantısı hakkında bilgi edinebileceğiniz yer."},
+            {"name": "Gizli Mahzen", "description": "Özel eşyalar ve bilgiler içeren gizli alan."}
         ],
         "map_coordinates": {"x": 460, "y": 280}
     },
     "Baldur's Gate": {
         "points_of_interest": [
-            {"name": "Lower City", "description": "Poorer district with many secrets and sidequests."},
-            {"name": "Upper City", "description": "Wealthy district with important political NPCs."},
-            {"name": "Rivington", "description": "Waterfront district with unique shops and quests."},
-            {"name": "Wyrm's Rock", "description": "Former prison now taken over by cultists."},
-            {"name": "Philgrave Mansion", "description": "Home to an important plot character with valuable information."}
+            {"name": "Aşağı Şehir", "description": "Birçok sır ve yan görev içeren fakir bölge."},
+            {"name": "Yukarı Şehir", "description": "Önemli politik NPC'lerle zengin bölge."},
+            {"name": "Rivington", "description": "Benzersiz dükkanlar ve görevlere sahip su kıyısı bölgesi."},
+            {"name": "Wyrm's Rock", "description": "Şimdi tarikatçıların ele geçirdiği eski hapishane."},
+            {"name": "Philgrave Malikanesi", "description": "Değerli bilgilere sahip önemli bir olay örgüsü karakterinin evi."}
         ],
         "map_coordinates": {"x": 520, "y": 320}
     }
@@ -139,10 +139,10 @@ def save_to_cache(region_name, data):
     try:
         with open(cache_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        logger.debug(f"Map data cached for region: {region_name}")
+        logger.debug(f"Harita verisi şu bölge için önbelleğe alındı: {region_name}")
         return True
     except Exception as e:
-        logger.error(f"Error caching map data: {e}")
+        logger.error(f"Harita verisi önbelleğe alınırken hata: {e}")
         return False
 
 def load_from_cache(region_name):
@@ -152,10 +152,10 @@ def load_from_cache(region_name):
         try:
             with open(cache_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            logger.debug(f"Loaded map data from cache for region: {region_name}")
+            logger.debug(f"Şu bölge için önbellekten harita verisi yüklendi: {region_name}")
             return data
         except Exception as e:
-            logger.error(f"Error loading cached map data: {e}")
+            logger.error(f"Önbellekli harita verisi yüklenirken hata: {e}")
     return None
 
 def fetch_fextralife_map_data(region_name):
@@ -172,7 +172,7 @@ def fetch_fextralife_map_data(region_name):
     # Boşlukları '+' ile, kesme işaretini '%27' ile değiştir
     safe_region_for_url = region_name.replace(" ", "+").replace("'", "%27")
     region_url = f"https://baldursgate3.wiki.fextralife.com/{safe_region_for_url}"
-    logger.info(f"Attempting to fetch directly from Fextralife URL: {region_url}")
+    logger.info(f"Fextralife URL'sinden doğrudan çekme girişimi: {region_url}")
     
     try:
         headers = {'User-Agent': settings.SCRAPER_USER_AGENT}
@@ -180,7 +180,7 @@ def fetch_fextralife_map_data(region_name):
         
         # Sayfa bulunamazsa (404), hata logla ve yerel veriyi dene
         if response.status_code == 404:
-            logger.warning(f"Direct Fextralife page not found: {region_url}. Falling back to local data.")
+            logger.warning(f"Doğrudan Fextralife sayfası bulunamadı: {region_url}. Yerel veriye dönülüyor.")
             if region_name in GAME_REGIONS:
                 return GAME_REGIONS[region_name]
             else:
@@ -271,21 +271,21 @@ def fetch_fextralife_map_data(region_name):
         # Cache'e kaydet
         save_to_cache(region_name, region_data)
         
-        logger.info(f"Successfully fetched map data for region: {region_name} from direct URL")
+        logger.info(f"Şu bölge için doğrudan URL'den harita verisi başarıyla çekildi: {region_name}")
         return region_data
         
     except requests.exceptions.RequestException as e:
-        logger.error(f"Error fetching direct Fextralife URL {region_url}: {e}")
+        logger.error(f"Doğrudan Fextralife URL'si çekilirken hata {region_url}: {e}")
         # Hata durumunda yerel veriyi kullan
         if region_name in GAME_REGIONS:
-            logger.info(f"Using local data for region due to fetch error: {region_name}")
+            logger.info(f"Çekme hatası nedeniyle bölge için yerel veri kullanılıyor: {region_name}")
             return GAME_REGIONS[region_name]
         return None
     except Exception as e:
-        logger.error(f"Error processing Fextralife data for {region_name}: {e}")
+        logger.error(f"Şu bölge için Fextralife verisi işlenirken hata: {region_name}: {e}")
         # Genel hata durumunda yerel veriyi kullan
         if region_name in GAME_REGIONS:
-            logger.info(f"Using local data for region due to processing error: {region_name}")
+            logger.info(f"İşleme hatası nedeniyle bölge için yerel veri kullanılıyor: {region_name}")
             return GAME_REGIONS[region_name]
         return None
 
@@ -325,27 +325,27 @@ def get_region_description(region_name):
 if __name__ == "__main__":
     # Test: Bir bölge için veri çek
     test_region = "Emerald Grove"
-    print(f"Testing map data retrieval for {test_region}...")
+    print(f"{test_region} için harita verisi çekme testi yapılıyor...")
     map_data = fetch_fextralife_map_data(test_region)
     
     if map_data:
-        print(f"\nRegion: {map_data['name']}")
+        print(f"\nBölge: {map_data['name']}")
         if "description" in map_data and map_data["description"]:
-            print(f"\nDescription: {map_data['description']}")
+            print(f"\nAçıklama: {map_data['description']}")
         
         if "points_of_interest" in map_data and map_data["points_of_interest"]:
-            print("\nPoints of Interest:")
+            print("\nÖnemli Noktalar:")
             for poi in map_data["points_of_interest"]:
                 print(f"- {poi['name']}: {poi['description']}")
         
         if "quests" in map_data and map_data["quests"]:
-            print("\nQuests:")
+            print("\nGörevler:")
             for quest in map_data["quests"]:
                 print(f"- {quest['name']}")
         
         if "npcs" in map_data and map_data["npcs"]:
-            print("\nNPCs:")
+            print("\nNPC'ler:")
             for npc in map_data["npcs"]:
                 print(f"- {npc['name']}")
     else:
-        print(f"No data found for region: {test_region}")
+        print(f"Şu bölge için veri bulunamadı: {test_region}")

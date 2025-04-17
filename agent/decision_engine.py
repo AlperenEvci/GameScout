@@ -8,6 +8,7 @@ from data import map_data  # Yeni map_data modülünü içe aktar
 from data.map_data import get_nearby_points_of_interest, get_quests_for_region
 from data.web_search import search_game_content, get_region_information
 from llm.api_client import LLMAPIClient
+import re
 
 logger = get_logger(__name__)
 
@@ -46,64 +47,334 @@ class GameState:
         # Bölge tespiti
         previous_region = self.current_region
         
-        if "Entering region:" in text:
-            try:
-                self.current_region = text.split("Entering region:")[1].split("\n")[0].strip()
-                logger.info(f"Bölge değişikliği tespit edildi: {self.current_region}")
-            except IndexError:
-                logger.warning("'Entering region:' sonrasında bölge adı ayrıştırılamadı.")
+        # OCR temizleme - renkli/ANSI kodları ve gereksiz karakterleri temizle
+        # Bu kısım kritik - OCR çıktısı yeşil renkli ve karmaşık formatlar içerebilir
+        cleaned_text = self._clean_ocr_text(text)
         
-        # Oyunda olabilecek alternatif metni dene
-        elif "location:" in text.lower():
-            try:
-                self.current_region = text.lower().split("location:")[1].split("\n")[0].strip()
-                logger.info(f"Konum tespit edildi: {self.current_region}")
-            except IndexError:
-                logger.warning("Konum adı ayrıştırılamadı.")
+        # OCR varyasyonlarını daha iyi karşılamak için düşük seviyeye getir
+        text_lower = cleaned_text.lower()
         
-        # BG3'e özgü bölge tespiti
-        bg3_regions = ["Ravaged Beach", "Emerald Grove", "Blighted Village", "Moonrise Towers", 
-                       "Underdark", "Grymforge", "Shadowfell", "Gauntlet of Shar", "Githyanki Creche",
-                       "Last Light Inn", "Wyrm's Rock", "Shadow-Cursed Lands", "Baldur's Gate"]
+        # Bölge tespiti geliştirme - BG3'e özgü bölge isimleri
+        bg3_regions = {
+            # İngilizce bölge adları
+            "ravaged beach": "Ravaged Beach",
+            "emerald grove": "Emerald Grove", 
+            "blighted village": "Blighted Village", 
+            "moonrise towers": "Moonrise Towers",
+            "underdark": "Underdark", 
+            "grymforge": "Grymforge", 
+            "shadowfell": "Shadowfell", 
+            "gauntlet of shar": "Gauntlet of Shar",
+            "githyanki creche": "Githyanki Creche",
+            "last light inn": "Last Light Inn", 
+            "wyrm's rock": "Wyrm's Rock",
+            "wyrms rock": "Wyrm's Rock",  # Apostrof olmadan alternatif yazım
+            "shadow-cursed lands": "Shadow-Cursed Lands", 
+            "baldur's gate": "Baldur's Gate",
+            "baldurs gate": "Baldur's Gate",  # Apostrof olmadan alternatif yazım
+            
+            # Türkçe bölge adları
+            "harap sahil": "Ravaged Beach",
+            "zumrut koru": "Emerald Grove",  # ü olmadan alternatif yazım
+            "zümrüt koru": "Emerald Grove",
+            "lanetli köy": "Blighted Village",
+            "lanetli koy": "Blighted Village",  # ö olmadan alternatif yazım
+            "ay doğuşu kuleleri": "Moonrise Towers",
+            "ay dogusu kuleleri": "Moonrise Towers",  # ğ, ü olmadan alternatif yazım
+            "yeraltı diyarı": "Underdark",
+            "yeralti diyari": "Underdark",  # ı, ğ olmadan alternatif yazım
+            "grym demirhanesi": "Grymforge",
+            "gölge düşüşü": "Shadowfell",
+            "golge dususu": "Shadowfell",  # ö, ü, ş olmadan alternatif yazım
+            "shar'ın eldiveni": "Gauntlet of Shar",
+            "sharin eldiveni": "Gauntlet of Shar",  # ' olmadan alternatif yazım
+            "githyanki beşiği": "Githyanki Creche",
+            "githyanki besigi": "Githyanki Creche",  # ş, ğ olmadan alternatif yazım
+            "son ışık hanı": "Last Light Inn",
+            "son isik hani": "Last Light Inn",  # ı, ş olmadan alternatif yazım
+            "ejderha kayası": "Wyrm's Rock",
+            "ejderha kayasi": "Wyrm's Rock",  # ı olmadan alternatif yazım
+            "gölge-lanetli topraklar": "Shadow-Cursed Lands",
+            "golge-lanetli topraklar": "Shadow-Cursed Lands",  # ö olmadan alternatif yazım
+            "gölge lanetli topraklar": "Shadow-Cursed Lands",  # tire olmadan alternatif yazım
+        }
         
-        for region in bg3_regions:
-            if region.lower() in text.lower():
-                self.current_region = region
-                logger.info(f"BG3 bölgesi tespit edildi: {self.current_region}")
+        # 1. Metin içinde doğrudan bir bölge adı var mı kontrol et
+        region_detected = False
+        
+        # Doğrudan tam eşleşme kontrolü
+        for region_name, region_key in bg3_regions.items():
+            if region_name in text_lower:
+                self.current_region = region_key
+                logger.info(f"BG3 bölgesi tespit edildi: '{region_name}' -> '{region_key}'")
+                region_detected = True
                 break
+        
+        # 2. "Bölge:" veya "location:" gibi anahtar kelimeler etrafında bölge adı arama
+        if not region_detected:
+            # Bölge etiketlerini içeren metni ara
+            region_labels = [
+                "bölge:", "bolge:", "bölgeye giriş:", "bolgeye giris:",
+                "konum:", "location:", "region:", "entering region:"
+            ]
+            
+            for label in region_labels:
+                if label in text_lower:
+                    # Etiketten sonraki metni al
+                    parts = text_lower.split(label, 1)
+                    if len(parts) > 1:
+                        after_label = parts[1].strip()
+                        # İlk 30 karakter içinde bölge adını ara (yeni satır veya nokta ile sınırla)
+                        region_text = after_label.split("\n")[0].split(".")[0][:30].strip()
+                        
+                        # Bu bölge metni bildiğimiz bir bölge adıyla eşleşiyor mu?
+                        for region_name, region_key in bg3_regions.items():
+                            if (region_name in region_text or 
+                                self._fuzzy_region_match(region_text, region_name)):
+                                self.current_region = region_key
+                                logger.info(f"Etiket '{label}' sonrası bölge tespit edildi: '{region_text}' -> '{region_key}'")
+                                region_detected = True
+                                break
+                    if region_detected:
+                        break
+        
+        # 3. "Yeni Görev" veya "New Quest" gibi ipuçlarında bölge adı olabilir
+        if not region_detected:
+            quest_triggers = [
+                "yeni görev:", "görev güncellendi:", "yeni gorev:", "gorev guncellendi:",
+                "new quest:", "quest updated:", "mission:"
+            ]
+            
+            for trigger in quest_triggers:
+                if trigger in text_lower:
+                    # Tetikleyiciden sonraki metni al
+                    parts = text_lower.split(trigger, 1)
+                    if len(parts) > 1:
+                        after_trigger = parts[1].strip()
+                        # İlk 50 karakter içinde bölge adını ara
+                        for region_name, region_key in bg3_regions.items():
+                            if (region_name in after_trigger[:50] or 
+                                self._fuzzy_region_match(after_trigger[:50], region_name)):
+                                self.current_region = region_key
+                                logger.info(f"Görev tetikleyicisi '{trigger}' içinde bölge tespit edildi: '{region_name}' -> '{region_key}'")
+                                region_detected = True
+                                break
+                    if region_detected:
+                        break
+        
+        # 4. Bulanık eşleştirme - metin içinde herhangi bir yerde kısmi bölge adı ara
+        if not region_detected:
+            for region_name, region_key in bg3_regions.items():
+                # Birden fazla kelimeden oluşan bölge adları için her bir kelimeyi kontrol et
+                words = region_name.split()
+                if len(words) > 1:
+                    matches = 0
+                    important_words = 0
+                    
+                    for word in words:
+                        if len(word) > 3:  # Önemli kelimeler (3 harften uzun)
+                            important_words += 1
+                            # Kelimenin kendisi veya benzeri var mı?
+                            if word in text_lower or self._fuzzy_word_match(text_lower, word):
+                                matches += 1
+                    
+                    # Eşleşme puanı hesapla - önemli kelimelerin en az %70'i eşleşmeli
+                    if important_words > 0 and matches / important_words >= 0.7:
+                        self.current_region = region_key
+                        match_percent = (matches / important_words) * 100
+                        logger.info(f"Bulanık kelime eşleştirmesi ile bölge tespit edildi: '{region_name}' -> '{region_key}' (%{match_percent:.1f} eşleşme)")
+                        region_detected = True
+                        break
+                
+                # Tek kelimelik bölge adları için kısmi eşleşme kontrolü
+                elif len(region_name) > 5:  # Yalnızca uzun tek kelimeler
+                    similarity = self._string_similarity(text_lower, region_name)
+                    if similarity > 0.7:  # %70'den fazla benzerlik
+                        self.current_region = region_key
+                        logger.info(f"Metin benzerliği ile bölge tespit edildi: '{region_name}' -> '{region_key}' (%{similarity*100:.1f} benzerlik)")
+                        region_detected = True
+                        break
+        
+        # 5. Son çare: Özel BG3 anahtar kelimeleri (tek başına)
+        if not region_detected:
+            # Oyunda geçen özel yer/NPC adları veya anahtar kelimeler (bölge ile ilişkilendirilmiş)
+            bg3_keywords = {
+                "halsin": "Emerald Grove",
+                "zevlor": "Emerald Grove",
+                "kagha": "Emerald Grove",
+                "arka": "Emerald Grove",
+                "goblin camp": "Blighted Village",
+                "goblin kamp": "Blighted Village",
+                "dank crypt": "Blighted Village",
+                "rutubetli kripta": "Blighted Village",
+                "minthara": "Moonrise Towers",
+                "ketheric": "Moonrise Towers",
+                "myconid colony": "Underdark",
+                "mikonid kolonisi": "Underdark",
+                "glut": "Underdark",
+                "auntie ethel": "Emerald Grove",
+                "teyze ethel": "Emerald Grove",
+                "isobel": "Last Light Inn",
+                "shar": "Gauntlet of Shar",
+                "nightsong": "Shadow-Cursed Lands",
+                "jaheira": "Last Light Inn"
+            }
+            
+            for keyword, region in bg3_keywords.items():
+                if keyword in text_lower:
+                    self.current_region = region
+                    logger.info(f"BG3 anahtar kelimesi ile bölge tespit edildi: '{keyword}' -> '{region}'")
+                    region_detected = True
+                    break
         
         # Konum değiştiyse veya uzun süre geçtiyse harita bilgilerini güncelle
         current_time = time.time()
         if (self.current_region != previous_region or 
             current_time - self.last_location_check_time > 300):  # 5 dakikada bir güncelle
             
+            if self.current_region != previous_region and previous_region is not None:
+                logger.info(f"Bölge değişti: '{previous_region}' -> '{self.current_region}'")
+                
             self.update_location_data()
             self.last_location_check_time = current_time
         
-        # Metinden ilginç anahtar kelimeleri çıkar
+        # Metinden ilginç anahtar kelimeleri çıkar (Türkçe ve İngilizce)
         interesting_keywords = [
+            # İngilizce anahtar kelimeler
             "quest", "mission", "objective", "enemy", "gold", "weapon", "armor", 
             "character", "health", "magic", "skill", "battle", "dialog", "choice",
             "companion", "camp", "rest", "spell", "attack", "defend", "loot", "chest",
             "trap", "lock", "stealth", "hidden", "secret", "map", "journal", "party",
             "inventory", "level up", "ability", "saving throw", "roll", "dice",
+            
             # Türkçe anahtar kelimeler
-            "görev", "düşman", "altın", "silah", "zırh", "karakter", "sağlık", "büyü",
-            "beceri", "savaş", "diyalog", "seçim", "yoldaş", "kamp", "dinlenme", "büyü",
-            "saldırı", "savunma", "ganimet", "sandık", "tuzak", "kilit", "gizlilik",
-            "gizli", "sır", "harita", "günlük", "parti", "envanter", "seviye atlama",
-            "yetenek", "kurtarma zarı", "zar"
+            "görev", "gorev", "misyon", "hedef", "düşman", "dusman", "altın", "altin", "silah", "zırh", "zirh", "karakter", 
+            "sağlık", "saglik", "büyü", "buyu", "yetenek", "beceri", "savaş", "savas", "diyalog", "seçim", "secim", 
+            "yoldaş", "yoldas", "kamp", "dinlenme", "büyü", "buyu", "saldırı", "saldiri", "savunma", "ganimet", 
+            "sandık", "sandik", "hazine", "tuzak", "kilit", "gizlilik", "gizli", "sır", "sir", "harita", 
+            "günlük", "gunluk", "parti", "grup", "envanter", "seviye atlama", "yetenek", 
+            "kurtarma zarı", "kurtarma zari", "zar", "konum", "bölge", "bolge"
         ]
         
         for keyword in interesting_keywords:
-            if keyword in text.lower():
+            if keyword.lower() in text_lower:
                 logger.info(f"OCR metninde '{keyword}' anahtar kelimesi tespit edildi")
                 self.detected_keywords.append(keyword)
         
-        # Görev tespit mantığı vb. ekle
-        if "new quest" in text.lower() or "quest updated" in text.lower() or "journal updated" in text.lower() or "yeni görev" in text.lower() or "görev güncellendi" in text.lower() or "günlük güncellendi" in text.lower():
-            logger.info("Görev aktivitesi tespit edildi")
-            self.detected_keywords.append("quest_update")
+        # Görev tespit mantığı (Türkçe ve İngilizce)
+        quest_triggers = [
+            # İngilizce
+            "new quest", "quest updated", "journal updated", "mission acquired",
+            # Türkçe
+            "yeni görev", "yeni gorev", "görev güncellendi", "gorev guncellendi", "günlük güncellendi", "gunluk guncellendi", 
+            "görev alındı", "gorev alindi", "misyon başladı", "misyon basladi", "görev başladı", "gorev basladi", 
+            "görev tamamlandı", "gorev tamamlandi"
+        ]
+        
+        for trigger in quest_triggers:
+            if trigger.lower() in text_lower:
+                logger.info(f"Görev aktivitesi tespit edildi: '{trigger}'")
+                self.detected_keywords.append("quest_update")
+                break
+    
+    def _clean_ocr_text(self, text):
+        """OCR metnini temizler - ANSI renk kodları, escape karakterleri vs. kaldırılır."""
+        # ANSI renk ve format kodlarını kaldır
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        text = ansi_escape.sub('', text)
+        
+        # Terminale özgü kontrol karakterlerini kaldır (örn: ^M, ^G vb.)
+        text = re.sub(r'[\x00-\x1F\x7F]', '', text)
+        
+        # Birden fazla boşluk, sekme ve yeni satırı tek bir boşlukla değiştir
+        text = re.sub(r'\s+', ' ', text)
+        
+        # OCR'de yaygın olarak karıştırılan karakterleri düzelt
+        replacements = {
+            '0': 'o',  # Sıfır -> küçük o
+            'l': 'i',  # küçük L -> küçük i
+            '1': 'i',  # Bir -> küçük i
+            '@': 'a',  # at işareti -> küçük a
+            '$': 's',  # dolar işareti -> küçük s
+            # Diğer yaygın OCR hataları burada eklenebilir
+        }
+        
+        # Türkçe karakterlerin ASCII karşılıklarını kabul et
+        tr_replacements = {
+            'ı': 'i',
+            'i̇': 'i',  # noktalı i karakteri
+            'ö': 'o',
+            'ü': 'u',
+            'ş': 's',
+            'ç': 'c',
+            'ğ': 'g',
+            # Büyük harfler için de
+            'İ': 'I',
+            'Ö': 'O',
+            'Ü': 'U',
+            'Ş': 'S',
+            'Ç': 'C',
+            'Ğ': 'G'
+        }
+        
+        # Tüm karakter değişimlerini uygula
+        for old, new in {**replacements, **tr_replacements}.items():
+            text = text.replace(old, new)
+        
+        # Gereksiz noktalama işaretlerini temizle
+        text = re.sub(r'[^\w\s\.]', ' ', text)
+        
+        logger.debug(f"OCR metni temizlendi - Orijinal uzunluk: {len(text)}")
+        return text
+        
+    def _fuzzy_region_match(self, text, region_name):
+        """Bulanık bölge eşleştirme - bölge adı ve metin arasındaki benzerliği kontrol eder."""
+        # Bölge adı kelimelerinin en az %60'ı metinde varsa eşleşme kabul et
+        words = region_name.split()
+        if len(words) <= 1:
+            return False
+            
+        matches = 0
+        for word in words:
+            if len(word) > 2 and (word in text or self._fuzzy_word_match(text, word)):
+                matches += 1
+                
+        match_ratio = matches / len(words)
+        return match_ratio >= 0.6
+        
+    def _fuzzy_word_match(self, text, word):
+        """Bulanık kelime eşleştirme - metin içinde kelimenin benzeri var mı kontrol eder."""
+        if len(word) <= 3:
+            return False  # Çok kısa kelimeler için bulanık eşleştirme yapmıyoruz
+            
+        # Kelimenin ilk 2/3'ünü ve son 2/3'ünü metin içinde ara
+        word_lower = word.lower()
+        prefix_len = max(2, int(len(word) * 0.67))
+        suffix_len = max(2, int(len(word) * 0.67))
+        
+        prefix = word_lower[:prefix_len]
+        suffix = word_lower[-suffix_len:]
+        
+        # Prefix veya suffix metin içinde geçiyorsa bu bir eşleşmedir
+        return prefix in text or suffix in text
+        
+    def _string_similarity(self, s1, s2):
+        """İki metin arasındaki benzerlık oranını hesapla."""
+        # Levenshtein mesafesi yerine basitleştirilmiş bir benzerlik ölçüsü kullanıyoruz
+        if not s1 or not s2:
+            return 0.0
+            
+        # Her iki metinde de geçen karakter sayısını hesapla
+        s1_chars = set(s1.lower())
+        s2_chars = set(s2.lower())
+        
+        common_chars = len(s1_chars.intersection(s2_chars))
+        total_chars = len(s1_chars.union(s2_chars))
+        
+        if total_chars == 0:
+            return 0.0
+            
+        return common_chars / total_chars
             
     def update_location_data(self):
         """Mevcut bölge için harita verilerini günceller."""
@@ -366,8 +637,8 @@ def generate_recommendations(game_state: GameState) -> list[str]:
     time_since_last = current_time - game_state.last_tip_time
     logger.debug(f"Son öneri denemesinden bu yana geçen süre: {time_since_last:.2f}sn")
 
-    # 6 dakikalık bekleme süresi geçti mi kontrol et
-    if time_since_last >= 360:
+    # 2 dakikalık bekleme süresi geçti mi kontrol et (önceki: 6 dakika/360 saniye)
+    if time_since_last >= 120:  # 120 saniye = 2 dakika
         logger.info("Bekleme süresi geçti. Yeni öneriler oluşturmaya çalışılıyor.")
         
         # --- LLM-bazlı öneriler ---
@@ -391,7 +662,7 @@ def generate_recommendations(game_state: GameState) -> list[str]:
         except Exception as e:
             logger.error(f"LLM önerileri alınırken hata: {e}", exc_info=True)
     else:
-        logger.debug(f"Bekleme süresi aktif. Öneri oluşturma atlanıyor. Kalan süre: {360 - time_since_last:.2f}sn")
+        logger.debug(f"Bekleme süresi aktif. Öneri oluşturma atlanıyor. Kalan süre: {120 - time_since_last:.2f}sn")
         return [] # Bekleme süresindeyken boş liste döndür
 
     # Önerileri sınırla
@@ -400,8 +671,7 @@ def generate_recommendations(game_state: GameState) -> list[str]:
     return recommendations
 
 
-if __name__ == '__main__':
-    # Örnek kullanım: Bir durum oluştur ve öneriler oluştur
+if __name__ == '__':  # Örnek kullanım: Bir durum oluştur ve öneriler oluştur
     print("Karar Motoru Test Ediliyor...")
     current_state = GameState()
     # Bazı metin bulma simülasyonu

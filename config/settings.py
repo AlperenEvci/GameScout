@@ -100,10 +100,10 @@ WEB_SEARCH_MAX_RESULTS = 3  # Maximum number of search results to retrieve
 WEB_SEARCH_TIMEOUT = 10  # Timeout in seconds for web search requests
 
 # --- UI Settings ---
-HUD_UPDATE_INTERVAL_MS = 1000 # How often the HUD refreshes
-HUD_WIDTH = 400  # Increased from 300 for better visibility
-HUD_HEIGHT = 300  # Increased from 200 for better visibility
-HUD_TRANSPARENCY = 0.9  # Increased from 0.7 for better visibility (less transparent)
+HUD_UPDATE_INTERVAL_MS = 2500  # 1 saniyeden 2.5 saniyeye çıkarıldı - HUD yenileme sıklığı
+HUD_WIDTH = 400  # Daha iyi görünürlük için 300'den artırıldı
+HUD_HEIGHT = 350  # Daha fazla içerik gösterebilmek için 300'den 350'ye çıkarıldı
+HUD_TRANSPARENCY = 0.85  # Daha iyi görünürlük için 0.9'dan 0.85'e değiştirildi (daha az şeffaf)
 
 # --- Logging ---
 LOG_FILE = "gamescout.log"
