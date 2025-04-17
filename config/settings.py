@@ -60,14 +60,14 @@ SCRAPER_USER_AGENT = f"{APP_NAME}/{VERSION} (GameScout Application)" # Be polite
 DEFAULT_CHARACTER_CLASS = "Wizard"
 
 # --- LLM API Settings ---
-# Set to "none" to disable, or choose "openai", "gemini", "deepseek" or "azure"
-LLM_PROVIDER = "deepseek"  # Set to "openai", "gemini", "deepseek", "azure" or "none"
-# Get your API key from https://deepseek.ai (for DeepSeek) or environment
-LLM_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
-# Set LLM API endpoint
-LLM_API_ENDPOINT = "https://api.deepseek.com/v1/chat/completions"
-# Model to use 
-LLM_MODEL = "deepseek-chat"  # DeepSeek Chat model
+# Set to "none" to disable, or choose "openai", "gemini", "deepseek", "openrouter" or "azure"
+LLM_PROVIDER = "openrouter"  # Set to "openrouter" for accessing DeepSeek
+# Get your OpenRouter API key from environment
+LLM_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+# Set LLM API endpoint - OpenRouter endpoint
+LLM_API_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
+# Model to use via OpenRouter
+LLM_MODEL = "deepseek/deepseek-r1:free"  # DeepSeek model via OpenRouter
 # Temperature (randomness) - lower for more consistent responses
 LLM_TEMPERATURE = 0.7
 # Maximum tokens in response

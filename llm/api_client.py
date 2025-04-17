@@ -87,6 +87,8 @@ class LLMAPIClient:
             return self._call_gemini_api(prompt)
         elif self.provider.lower() == "deepseek":
             return self._call_deepseek_api(prompt)
+        elif self.provider.lower() == "openrouter":
+            return self._call_openrouter_api(prompt)
         elif self.provider.lower() == "azure":
             return self._call_azure_openai_api(prompt)
         else:
@@ -129,6 +131,51 @@ class LLMAPIClient:
         
         logger.debug(f"Built LLM prompt: {prompt[:100]}...")
         return prompt
+    
+    def _call_litellm_router(self, prompt):
+        """Call the LiteLLM router API with the given prompt to access DeepSeek."""
+        try:
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.api_key}"
+            }
+            
+            # LiteLLM router follows OpenAI API format
+            data = {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": settings.LLM_SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": settings.LLM_TEMPERATURE,
+                "max_tokens": settings.LLM_MAX_TOKENS
+            }
+            
+            logger.info(f"Sending request to LiteLLM router for DeepSeek model: {self.model}")
+            
+            response = requests.post(
+                self.api_endpoint,
+                headers=headers,
+                data=json.dumps(data),
+                timeout=self.timeout
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if "choices" in result and len(result["choices"]) > 0:
+                    content = result["choices"][0]["message"]["content"]
+                    recommendations = self._parse_recommendations(content)
+                    logger.info(f"Received {len(recommendations)} recommendations from DeepSeek via LiteLLM router")
+                    return recommendations
+                else:
+                    logger.error(f"Unexpected response format from LiteLLM router: {result}")
+            else:
+                logger.error(f"LiteLLM router API error: {response.status_code}, {response.text[:500]}")
+                
+        except Exception as e:
+            logger.error(f"Error calling LiteLLM router API: {e}", exc_info=True)
+        
+        return []  # Return empty list on error
     
     def _call_deepseek_api(self, prompt):
         """Call the DeepSeek API with the given prompt."""
@@ -312,6 +359,53 @@ class LLMAPIClient:
         
         except Exception as e:
             logger.error(f"Error calling Gemini API: {e}", exc_info=True)
+        
+        return []  # Return empty list on error
+    
+    def _call_openrouter_api(self, prompt):
+        """Call the OpenRouter API to access DeepSeek models."""
+        try:
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.api_key}",
+                "HTTP-Referer": "https://gamescout.app",  # Replace with your actual domain
+                "X-Title": "GameScout BG3 Assistant"
+            }
+            
+            # OpenRouter API follows OpenAI format
+            data = {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": settings.LLM_SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": settings.LLM_TEMPERATURE,
+                "max_tokens": settings.LLM_MAX_TOKENS
+            }
+            
+            logger.info(f"Sending request to OpenRouter for model: {self.model}")
+            
+            response = requests.post(
+                self.api_endpoint,
+                headers=headers,
+                data=json.dumps(data),
+                timeout=self.timeout
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if "choices" in result and len(result["choices"]) > 0:
+                    content = result["choices"][0]["message"]["content"]
+                    recommendations = self._parse_recommendations(content)
+                    logger.info(f"Received {len(recommendations)} recommendations from DeepSeek via OpenRouter")
+                    return recommendations
+                else:
+                    logger.error(f"Unexpected response format from OpenRouter API: {result}")
+            else:
+                logger.error(f"OpenRouter API error: {response.status_code}, {response.text[:500]}")
+                
+        except Exception as e:
+            logger.error(f"Error calling OpenRouter API: {e}", exc_info=True)
         
         return []  # Return empty list on error
     
