@@ -12,7 +12,7 @@ from llm.api_client import LLMAPIClient
 logger = get_logger(__name__)
 
 class GameState:
-    """Represents the current perceived state of the game."""
+    """Oyunun mevcut algılanan durumunu temsil eder."""
     def __init__(self):
         self.current_region: str | None = None
         self.active_quests: list[str] = []
@@ -20,48 +20,48 @@ class GameState:
         self.last_ocr_text: str = ""
         self.detected_keywords: list[str] = []
         self.last_tip_time = 0
-        self.recent_tips = []  # Store recently shown tips to avoid repetition
+        self.recent_tips = []  # Tekrarı önlemek için son gösterilen ipuçlarını sakla
         self.last_location_check_time = 0  # En son konum bilgisi güncellenme zamanı
         self.nearby_points_of_interest = []  # Yakındaki önemli noktalar
         self.region_quests = []  # Bölgedeki görevler
-        # Add more state variables as needed (e.g., player health, level, inventory items)
+        # İhtiyaç duyuldukça daha fazla durum değişkeni ekleyin (örn. oyuncu sağlığı, seviye, envanter)
 
     def update_from_ocr(self, text: str):
-        """Updates the game state based on OCR text analysis."""
+        """OCR metin analizine dayalı oyun durumunu günceller."""
         self.last_ocr_text = text
-        logger.debug("Updating game state from OCR text...")
+        logger.debug("OCR metninden oyun durumu güncelleniyor...")
         
-        # Log the length of the OCR text for debugging
+        # Hata ayıklama için OCR metninin uzunluğunu kaydet
         text_length = len(text.strip())
-        logger.info(f"Received OCR text of length: {text_length} characters")
+        logger.info(f"Alınan OCR metni uzunluğu: {text_length} karakter")
         
         if text_length == 0:
-            logger.warning("Received empty OCR text - no game state update possible")
+            logger.warning("Boş OCR metni alındı - oyun durumu güncellemesi mümkün değil")
             return
             
-        # --- Add logic to parse region, quests, etc. from text ---
-        # Clear previous detected keywords
+        # --- Bölge, görevleri vb. ayrıştırmak için mantık ekleyin ---
+        # Önceki tespit edilen anahtar kelimeleri temizle
         self.detected_keywords = []
         
-        # Region detection
+        # Bölge tespiti
         previous_region = self.current_region
         
         if "Entering region:" in text:
             try:
                 self.current_region = text.split("Entering region:")[1].split("\n")[0].strip()
-                logger.info(f"Detected region change: {self.current_region}")
+                logger.info(f"Bölge değişikliği tespit edildi: {self.current_region}")
             except IndexError:
-                logger.warning("Could not parse region name after 'Entering region:'.")
+                logger.warning("'Entering region:' sonrasında bölge adı ayrıştırılamadı.")
         
-        # Try alternative text that might be in the game
+        # Oyunda olabilecek alternatif metni dene
         elif "location:" in text.lower():
             try:
                 self.current_region = text.lower().split("location:")[1].split("\n")[0].strip()
-                logger.info(f"Detected location: {self.current_region}")
+                logger.info(f"Konum tespit edildi: {self.current_region}")
             except IndexError:
-                logger.warning("Could not parse location name.")
+                logger.warning("Konum adı ayrıştırılamadı.")
         
-        # BG3-specific region detection
+        # BG3'e özgü bölge tespiti
         bg3_regions = ["Ravaged Beach", "Emerald Grove", "Blighted Village", "Moonrise Towers", 
                        "Underdark", "Grymforge", "Shadowfell", "Gauntlet of Shar", "Githyanki Creche",
                        "Last Light Inn", "Wyrm's Rock", "Shadow-Cursed Lands", "Baldur's Gate"]
@@ -69,7 +69,7 @@ class GameState:
         for region in bg3_regions:
             if region.lower() in text.lower():
                 self.current_region = region
-                logger.info(f"Detected BG3 region: {self.current_region}")
+                logger.info(f"BG3 bölgesi tespit edildi: {self.current_region}")
                 break
         
         # Konum değiştiyse veya uzun süre geçtiyse harita bilgilerini güncelle
@@ -80,268 +80,274 @@ class GameState:
             self.update_location_data()
             self.last_location_check_time = current_time
         
-        # Extract interesting keywords from the text
+        # Metinden ilginç anahtar kelimeleri çıkar
         interesting_keywords = [
             "quest", "mission", "objective", "enemy", "gold", "weapon", "armor", 
             "character", "health", "magic", "skill", "battle", "dialog", "choice",
             "companion", "camp", "rest", "spell", "attack", "defend", "loot", "chest",
             "trap", "lock", "stealth", "hidden", "secret", "map", "journal", "party",
-            "inventory", "level up", "ability", "saving throw", "roll", "dice"
+            "inventory", "level up", "ability", "saving throw", "roll", "dice",
+            # Türkçe anahtar kelimeler
+            "görev", "düşman", "altın", "silah", "zırh", "karakter", "sağlık", "büyü",
+            "beceri", "savaş", "diyalog", "seçim", "yoldaş", "kamp", "dinlenme", "büyü",
+            "saldırı", "savunma", "ganimet", "sandık", "tuzak", "kilit", "gizlilik",
+            "gizli", "sır", "harita", "günlük", "parti", "envanter", "seviye atlama",
+            "yetenek", "kurtarma zarı", "zar"
         ]
         
         for keyword in interesting_keywords:
             if keyword in text.lower():
-                logger.info(f"Detected keyword '{keyword}' in OCR text")
+                logger.info(f"OCR metninde '{keyword}' anahtar kelimesi tespit edildi")
                 self.detected_keywords.append(keyword)
         
-        # Add quest detection logic, etc.
-        if "new quest" in text.lower() or "quest updated" in text.lower() or "journal updated" in text.lower():
-            logger.info("Quest activity detected")
+        # Görev tespit mantığı vb. ekle
+        if "new quest" in text.lower() or "quest updated" in text.lower() or "journal updated" in text.lower() or "yeni görev" in text.lower() or "görev güncellendi" in text.lower() or "günlük güncellendi" in text.lower():
+            logger.info("Görev aktivitesi tespit edildi")
             self.detected_keywords.append("quest_update")
             
     def update_location_data(self):
         """Mevcut bölge için harita verilerini günceller."""
         if not self.current_region:
-            logger.debug("No current region detected, skipping location data update")
+            logger.debug("Tespit edilmiş bölge yok, konum verisi güncellemesi atlanıyor")
             return
             
-        logger.info(f"Updating location data for region: {self.current_region}")
+        logger.info(f"Şu bölge için konum verileri güncelleniyor: {self.current_region}")
         
         # Bölge için önemli noktaları getir
         self.nearby_points_of_interest = map_data.get_nearby_points_of_interest(self.current_region)
-        logger.debug(f"Found {len(self.nearby_points_of_interest)} points of interest")
+        logger.debug(f"{len(self.nearby_points_of_interest)} önemli nokta bulundu")
         
         # Bölgeye ait görevleri getir
         self.region_quests = map_data.get_quests_for_region(self.current_region)
-        logger.debug(f"Found {len(self.region_quests)} quests for this region")
+        logger.debug(f"Bu bölge için {len(self.region_quests)} görev bulundu")
 
     def add_recent_tip(self, tip):
-        """Track recently shown tips to avoid repetition"""
+        """Tekrarı önlemek için son gösterilen ipuçlarını takip et"""
         self.recent_tips.append(tip)
-        # Keep only the last 10 tips to avoid growing the list indefinitely
+        # Listeyi sonsuz büyümesini önlemek için sadece son 10 ipucunu tut
         if len(self.recent_tips) > 10:
             self.recent_tips.pop(0)
 
     def was_recently_shown(self, tip):
-        """Check if a tip was recently shown"""
+        """Bir ipucunun yakın zamanda gösterilip gösterilmediğini kontrol et"""
         return tip in self.recent_tips
 
     def __str__(self):
-        return (f"GameState(Region: {self.current_region}, "
-                f"Quests: {len(self.active_quests)}, "
-                f"Class: {self.character_class}, "
-                f"Keywords: {self.detected_keywords}, "
-                f"POIs: {len(self.nearby_points_of_interest)})")
+        return (f"OyunDurumu(Bölge: {self.current_region}, "
+                f"Görevler: {len(self.active_quests)}, "
+                f"Sınıf: {self.character_class}, "
+                f"Anahtar Kelimeler: {self.detected_keywords}, "
+                f"ÖnemliNoktalar: {len(self.nearby_points_of_interest)})")
 
 
-# BG3 tips database organized by category
+# BG3 ipuçları veritabanı kategorilere göre düzenlendi
 BG3_TIPS = {
     "general": [
-        "Tip: Remember to save your game regularly.",
-        "Tip: Use stealth to scout ahead and avoid dangerous encounters.",
-        "Tip: Position your party before initiating combat for tactical advantage.",
-        "Tip: Check your surroundings for hidden treasures and secret paths.",
-        "Tip: Pay attention to environmental hazards you can use in combat.",
-        "Tip: Talk to NPCs multiple times as they may have new dialogue options.",
-        "Tip: Use height advantage for better attack rolls.",
-        "Tip: Characters in shadows have advantage on stealth checks.",
-        "Tip: Long rest to recover spell slots and abilities.",
-        "Tip: You can use Shove to push enemies into hazards or off ledges.",
-        "Tip: Prepare different spells after a long rest to adapt to new challenges.",
-        "Tip: Distribute healing potions among all party members.",
-        "Tip: Remember that passive skills work automatically - no need to activate them.",
-        "Tip: Pick up movable objects by holding left-click on them.",
-        "Tip: Some locks can be broken if lockpicking fails.",
+        "İpucu: Oyununuzu düzenli olarak kaydetmeyi unutmayın.",
+        "İpucu: Tehlikeli karşılaşmalardan kaçınmak için gizlilik kullanarak keşif yapın.",
+        "İpucu: Savaşa başlamadan önce taktiksel avantaj için ekibinizi konumlandırın.",
+        "İpucu: Gizli hazineler ve gizli yollar için çevrenizi kontrol edin.",
+        "İpucu: Savaşta kullanabileceğiniz çevresel tehlikelere dikkat edin.",
+        "İpucu: NPC'lerle birden fazla kez konuşun, yeni diyalog seçenekleri olabilir.",
+        "İpucu: Daha iyi saldırı zarları için yükseklik avantajı kullanın.",
+        "İpucu: Gölgelerdeki karakterler gizlilik kontrollerinde avantaja sahiptir.",
+        "İpucu: Büyü slotlarını ve yetenekleri yenilemek için uzun dinlenme yapın.",
+        "İpucu: Düşmanları tehlikelere veya uçurumlara itmek için İtme kullanabilirsiniz.",
+        "İpucu: Yeni zorluklara uyum sağlamak için uzun dinlenmeden sonra farklı büyüler hazırlayın.",
+        "İpucu: İyileştirme iksirlerini tüm parti üyeleri arasında dağıtın.",
+        "İpucu: Pasif becerilerin otomatik olarak çalıştığını unutmayın - etkinleştirmenize gerek yok.",
+        "İpucu: Hareketli nesneleri sol tıklama tuşunu basılı tutarak alabilirsiniz.",
+        "İpucu: Bazı kilitler, maymuncuk başarısız olursa kırılabilir.",
     ],
     "combat": [
-        "Combat Tip: Use high ground for advantage on attacks.",
-        "Combat Tip: Consider using consumables like scrolls and potions during tough fights.",
-        "Combat Tip: Target enemy spellcasters first to disrupt their casting.",
-        "Combat Tip: Use Disengage to avoid opportunity attacks.",
-        "Combat Tip: Check enemy resistances to choose effective damage types.",
-        "Combat Tip: Use Help action to give advantage to your allies.",
-        "Combat Tip: Flanking an enemy gives advantage on attack rolls.",
-        "Combat Tip: Remember you can jump during combat to reposition.",
-        "Combat Tip: Use Dodge for defensive positioning.",
-        "Combat Tip: AOE spells can hit multiple targets but watch friendly fire.",
+        "Savaş İpucu: Saldırılarda avantaj için yüksek zemini kullanın.",
+        "Savaş İpucu: Zorlu savaşlarda tomar ve iksir gibi tüketilebilir öğeleri kullanmayı düşünün.",
+        "Savaş İpucu: Büyü yapmalarını engellemek için önce düşman büyücüleri hedef alın.",
+        "Savaş İpucu: Fırsat saldırılarından kaçınmak için Ayrılma kullanın.",
+        "Savaş İpucu: Etkili hasar türleri seçmek için düşman dirençlerini kontrol edin.",
+        "Savaş İpucu: Müttefiklerinize avantaj sağlamak için Yardım eylemi kullanın.",
+        "Savaş İpucu: Bir düşmanı yandan sıkıştırmak saldırı zarlarında avantaj sağlar.",
+        "Savaş İpucu: Yeniden konumlanmak için savaş sırasında zıplayabileceğinizi unutmayın.",
+        "Savaş İpucu: Savunma konumlanması için Kaçınma kullanın.",
+        "Savaş İpucu: AOE büyüleri birden çok hedefi vurabilir ancak dost ateşine dikkat edin.",
     ],
     "exploration": [
-        "Exploration Tip: Look for hidden buttons and levers in dungeons.",
-        "Exploration Tip: Use your highest Perception character to spot hidden treasures.",
-        "Exploration Tip: Check bookshelves and containers for lore and items.",
-        "Exploration Tip: Watch for discolored floor tiles which might hide traps.",
-        "Exploration Tip: Some walls can be destroyed to reveal hidden areas.",
-        "Exploration Tip: Use Jump to reach seemingly inaccessible areas.",
-        "Exploration Tip: Take notes about locked doors to return later with keys.",
-        "Exploration Tip: Some chests are trapped - use a high Perception character to check.",
-        "Exploration Tip: Combine Find Familiar with scouting to safely explore.",
-        "Exploration Tip: Look above you - treasures and paths can be up high.",
+        "Keşif İpucu: Zindanlarda gizli düğmeler ve kollar arayın.",
+        "Keşif İpucu: Gizli hazineleri tespit etmek için en yüksek Algılama karakterinizi kullanın.",
+        "Keşif İpucu: Hikâye ve eşyalar için kitap raflarını ve kapları kontrol edin.",
+        "Keşif İpucu: Tuzakları gizleyebilecek renkli zemin karolarına dikkat edin.",
+        "Keşif İpucu: Bazı duvarlar, gizli alanları açığa çıkarmak için yok edilebilir.",
+        "Keşif İpucu: Görünüşte erişilemeyen alanlara ulaşmak için Zıplama kullanın.",
+        "Keşif İpucu: Anahtarlarla daha sonra dönmek için kilitli kapıların notunu tutun.",
+        "Keşif İpucu: Bazı sandıklar tuzaklıdır - kontrol etmek için yüksek Algılama karakteri kullanın.",
+        "Keşif İpucu: Güvenle keşfetmek için Arkadaş Bul ile keşif yapın.",
+        "Keşif İpucu: Yukarıya bakın - hazineler ve yollar yukarıda olabilir.",
     ],
     "social": [
-        "Social Tip: Your character's background affects some dialogue options.",
-        "Social Tip: High Charisma helps with persuasion and intimidation.",
-        "Social Tip: Different companions may have special dialogue with certain NPCs.",
-        "Social Tip: Certain items can unlock special dialogue options.",
-        "Social Tip: Character race and class can affect how NPCs respond to you.",
-        "Social Tip: Insight can help determine if an NPC is being truthful.",
-        "Social Tip: Some dialogue choices permanently affect your relationship with companions.",
-        "Social Tip: Different approaches to quests can lead to different rewards.",
-        "Social Tip: Pay attention to approval/disapproval indicators during companion dialogue.",
-        "Social Tip: Some decisions might close off certain quest paths permanently.",
+        "Sosyal İpucu: Karakterinizin geçmişi bazı diyalog seçeneklerini etkiler.",
+        "Sosyal İpucu: Yüksek Karizma ikna ve gözdağı vermede yardımcı olur.",
+        "Sosyal İpucu: Farklı yoldaşların belirli NPC'lerle özel diyalogları olabilir.",
+        "Sosyal İpucu: Belirli eşyalar özel diyalog seçeneklerinin kilidini açabilir.",
+        "Sosyal İpucu: Karakter ırkı ve sınıfı NPC'lerin size nasıl yanıt vereceğini etkileyebilir.",
+        "Sosyal İpucu: İçgörü, bir NPC'nin dürüst olup olmadığını belirlemeye yardımcı olabilir.",
+        "Sosyal İpucu: Bazı diyalog seçimleri, yoldaşlarınızla ilişkinizi kalıcı olarak etkiler.",
+        "Sosyal İpucu: Görevlere farklı yaklaşımlar farklı ödüllere yol açabilir.",
+        "Sosyal İpucu: Yoldaş diyaloğu sırasında onay/onaylamama göstergelerine dikkat edin.",
+        "Sosyal İpucu: Bazı kararlar belirli görev yollarını kalıcı olarak kapatabilir.",
     ],
     "class_specific": {
         "Wizard": [
-            "Wizard Tip: Look for spell scrolls to add to your spellbook.",
-            "Wizard Tip: Remember to prepare different spells after a long rest.",
-            "Wizard Tip: Consider using ritual spells to save spell slots.",
-            "Wizard Tip: Position yourself away from melee combat.",
-            "Wizard Tip: Use your familiar for scouting dangerous areas.",
+            "Büyücü İpucu: Büyü kitabınıza eklemek için büyü tomarları arayın.",
+            "Büyücü İpucu: Uzun dinlenmeden sonra farklı büyüler hazırlamayı unutmayın.",
+            "Büyücü İpucu: Büyü slotlarını korumak için ritüel büyüleri kullanmayı düşünün.",
+            "Büyücü İpucu: Yakın dövüşten uzak duracak şekilde konumlanın.",
+            "Büyücü İpucu: Tehlikeli alanları keşfetmek için aşina kullanın.",
         ],
         "Fighter": [
-            "Fighter Tip: Second Wind can provide emergency healing in combat.",
-            "Fighter Tip: Action Surge gives you an extra action - use it wisely.",
-            "Fighter Tip: Consider the Sentinel feat for controlling the battlefield.",
-            "Fighter Tip: Position yourself to protect squishier party members.",
-            "Fighter Tip: You can use heavy weapons effectively due to your proficiency.",
+            "Savaşçı İpucu: İkinci Nefes, savaşta acil iyileştirme sağlayabilir.",
+            "Savaşçı İpucu: Eylem Dalgası size ekstra bir eylem verir - akıllıca kullanın.",
+            "Savaşçı İpucu: Savaş alanını kontrol etmek için Nöbetçi yeteneğini düşünün.",
+            "Savaşçı İpucu: Daha kırılgan parti üyelerini korumak için kendinizi konumlandırın.",
+            "Savaşçı İpucu: Yeterliliğiniz nedeniyle ağır silahları etkili bir şekilde kullanabilirsiniz.",
         ],
         "Cleric": [
-            "Cleric Tip: Remember to prepare your spells after a long rest.",
-            "Cleric Tip: Your Channel Divinity recharges on a short rest.",
-            "Cleric Tip: Domain spells are always prepared and don't count against your limit.",
-            "Cleric Tip: Balance offensive, defensive, and healing spells.",
-            "Cleric Tip: Turn Undead can help control crowds of undead enemies.",
+            "Rahip İpucu: Uzun dinlenmeden sonra büyülerinizi hazırlamayı unutmayın.",
+            "Rahip İpucu: Kanal Tanrısallığınız kısa dinlenme ile yenilenir.",
+            "Rahip İpucu: Alan büyüleri her zaman hazırdır ve limitinize karşı sayılmaz.",
+            "Rahip İpucu: Saldırı, savunma ve iyileştirme büyülerini dengeleyin.",
+            "Rahip İpucu: Ölümsüz Kovma, ölümsüz düşman kalabalıklarını kontrol etmeye yardımcı olabilir.",
         ],
         "Rogue": [
-            "Rogue Tip: Use Cunning Action to disengage after attacking.",
-            "Rogue Tip: Stealth before combat to get a surprise attack bonus.",
-            "Rogue Tip: Look for opportunities to gain Sneak Attack damage.",
-            "Rogue Tip: You excel at disarming traps and picking locks.",
-            "Rogue Tip: Use Expertise to become exceptionally good at key skills.",
+            "Hırsız İpucu: Saldırdıktan sonra ayrılmak için Kurnaz Eylem kullanın.",
+            "Hırsız İpucu: Sürpriz saldırı bonusu almak için savaştan önce gizlenin.",
+            "Hırsız İpucu: Gizli Saldırı hasarı kazanmak için fırsatlar arayın.",
+            "Hırsız İpucu: Tuzakları etkisiz hale getirmede ve kilitleri açmada mükemmelsiniz.",
+            "Hırsız İpucu: Temel becerilerde olağanüstü iyi olmak için Uzmanlık kullanın.",
         ],
         "Ranger": [
-            "Ranger Tip: Mark enemies as your Favored Enemy for bonuses.",
-            "Ranger Tip: Use your animal companion for tactical advantages.",
-            "Ranger Tip: You can track creatures effectively in their Favored Terrain.",
-            "Ranger Tip: Hunter's Mark increases your damage output.",
-            "Ranger Tip: Consider using ranged weapons to attack from safety.",
+            "Korucu İpucu: Düşmanları bonuslar için Favori Düşman olarak işaretleyin.",
+            "Korucu İpucu: Taktiksel avantajlar için hayvan arkadaşınızı kullanın.",
+            "Korucu İpucu: Favori Arazinizde yaratıkları etkili bir şekilde takip edebilirsiniz.",
+            "Korucu İpucu: Avcı İşareti hasar çıkışınızı artırır.",
+            "Korucu İpucu: Güvende saldırmak için menzilli silahlar kullanmayı düşünün.",
         ],
         "Druid": [
-            "Druid Tip: Wild Shape can be used for combat or exploration.",
-            "Druid Tip: Concentration spells continue working while Wild Shaped.",
-            "Druid Tip: You can speak with animals to gain information.",
-            "Druid Tip: Consider the terrain when casting area effect spells.",
-            "Druid Tip: Prepare different spells when you expect different challenges.",
+            "Druid İpucu: Vahşi Şekil savaş veya keşif için kullanılabilir.",
+            "Druid İpucu: Konsantrasyon büyüleri Vahşi Şekil halindeyken çalışmaya devam eder.",
+            "Druid İpucu: Bilgi edinmek için hayvanlarla konuşabilirsiniz.",
+            "Druid İpucu: Alan etkili büyüleri kullanırken araziyi dikkate alın.",
+            "Druid İpucu: Farklı zorluklar beklendiğinde farklı büyüler hazırlayın.",
         ],
         "Paladin": [
-            "Paladin Tip: Use Divine Smite on critical hits for maximum damage.",
-            "Paladin Tip: Your aura gives nearby allies bonuses to saving throws.",
-            "Paladin Tip: Lay on Hands can cure diseases as well as heal.",
-            "Paladin Tip: Consider your oath when making moral choices.",
-            "Paladin Tip: Your high Charisma helps with social interactions.",
+            "Paladin İpucu: Maksimum hasar için kritik vuruşlarda İlahi Darbe kullanın.",
+            "Paladin İpucu: Aura'nız yakındaki müttefiklere kurtarma zarlarında bonuslar verir.",
+            "Paladin İpucu: El Koyma hastalıkları iyileştirebilir ve aynı zamanda iyileştirebilir.",
+            "Paladin İpucu: Ahlaki seçimler yaparken yemininizi göz önünde bulundurun.",
+            "Paladin İpucu: Yüksek Karizmanız sosyal etkileşimlerde yardımcı olur.",
         ],
         "Bard": [
-            "Bard Tip: Bardic Inspiration can help allies succeed at critical moments.",
-            "Bard Tip: You can learn spells from any class with Magical Secrets.",
-            "Bard Tip: Jack of All Trades gives you bonuses to all skill checks.",
-            "Bard Tip: Your high Charisma makes you excellent at social encounters.",
-            "Bard Tip: Save your reaction for Cutting Words to prevent enemy successes.",
+            "Ozan İpucu: Bardik İlham, müttefiklerin kritik anlarda başarılı olmasına yardımcı olabilir.",
+            "Ozan İpucu: Büyülü Sırlar ile herhangi bir sınıftan büyüler öğrenebilirsiniz.",
+            "Ozan İpucu: Bütün Becerilerin Üstadı tüm beceri kontrollerine bonuslar verir.",
+            "Ozan İpucu: Yüksek Karizmanız sizi sosyal karşılaşmalarda mükemmel kılar.",
+            "Ozan İpucu: Düşman başarılarını önlemek için tepkinizi Keskin Sözler için saklayın.",
         ],
         "Sorcerer": [
-            "Sorcerer Tip: Metamagic allows you to customize your spells.",
-            "Sorcerer Tip: Convert sorcery points to spell slots when needed.",
-            "Sorcerer Tip: Careful Spell helps avoid hitting allies with AOE spells.",
-            "Sorcerer Tip: Twinned Spell effectively doubles single-target spells.",
-            "Sorcerer Tip: Your Charisma powers your magic and social skills.",
+            "Büyücü İpucu: Meta Büyü büyülerinizi özelleştirmenize olanak tanır.",
+            "Büyücü İpucu: Gerektiğinde büyücülük puanlarını büyü slotlarına dönüştürün.",
+            "Büyücü İpucu: Dikkatli Büyü, müttefikleri AOE büyülerden korumaya yardımcı olur.",
+            "Büyücü İpucu: İkiz Büyü tek hedefli büyüleri etkili bir şekilde ikiye katlar.",
+            "Büyücü İpucu: Karizmanız büyünüzü ve sosyal becerilerinizi güçlendirir.",
         ],
         "Warlock": [
-            "Warlock Tip: Your spell slots recharge on a short rest.",
-            "Warlock Tip: Eldritch Invocations can be changed when leveling up.",
-            "Warlock Tip: Hex increases your damage against a specific target.",
-            "Warlock Tip: Your Pact Boon defines your playstyle - choose wisely.",
-            "Warlock Tip: Eldritch Blast can be enhanced with invocations.",
+            "Büyücü Paktı İpucu: Büyü slotlarınız kısa dinlenme ile yenilenir.",
+            "Büyücü Paktı İpucu: Şeytani Çağrılar seviye atlarken değiştirilebilir.",
+            "Büyücü Paktı İpucu: Lanet belirli bir hedefe karşı hasarınızı artırır.",
+            "Büyücü Paktı İpucu: Pakt Hediyeniz oyun tarzınızı tanımlar - akıllıca seçin.",
+            "Büyücü Paktı İpucu: Şeytani Patlama çağrılarla geliştirilebilir.",
         ],
         "Monk": [
-            "Monk Tip: Spend Ki points wisely - they recharge on a short rest.",
-            "Monk Tip: Patient Defense gives disadvantage to attacks against you.",
-            "Monk Tip: Flurry of Blows gives extra attacks for Ki points.",
-            "Monk Tip: You can deflect missiles and potentially throw them back.",
-            "Monk Tip: Stunning Strike can disable powerful enemies temporarily.",
+            "Keşiş İpucu: Ki puanlarını akıllıca harcayın - kısa dinlenme ile yenilenirler.",
+            "Keşiş İpucu: Sabırlı Savunma size karşı yapılan saldırılara dezavantaj verir.",
+            "Keşiş İpucu: Darbe Sağanağı Ki puanları için ekstra saldırılar verir.",
+            "Keşiş İpucu: Füzeleri saptırabilir ve potansiyel olarak geri fırlatabilirsiniz.",
+            "Keşiş İpucu: Sersemletici Vuruş güçlü düşmanları geçici olarak devre dışı bırakabilir.",
         ],
         "Barbarian": [
-            "Barbarian Tip: Rage gives damage resistance and bonus damage.",
-            "Barbarian Tip: Reckless Attack grants advantage but makes you vulnerable.",
-            "Barbarian Tip: Danger Sense gives advantage on Dexterity saving throws.",
-            "Barbarian Tip: Your unarmored defense works best with high Constitution.",
-            "Barbarian Tip: Fast Movement helps you reach enemies quickly.",
+            "Barbar İpucu: Öfke hasar direnci ve bonus hasar verir.",
+            "Barbar İpucu: Pervasız Saldırı avantaj sağlar ancak sizi savunmasız bırakır.",
+            "Barbar İpucu: Tehlike Sezgisi Çeviklik kurtarma zarlarında avantaj sağlar.",
+            "Barbar İpucu: Zırhsız savunmanız yüksek Dayanıklılık ile en iyi sonucu verir.",
+            "Barbar İpucu: Hızlı Hareket düşmanlara hızla ulaşmanıza yardımcı olur.",
         ]
     },
     "region_specific": {
         "Ravaged Beach": [
-            "Region Tip: Search the shipwreck thoroughly for useful items.",
-            "Region Tip: The nautiloid has many secrets to discover.",
-            "Region Tip: Help injured survivors for information and rewards.",
-            "Region Tip: Beware of brain tadpoles - they cause illithid infection.",
+            "Bölge İpucu: Kullanışlı eşyalar için gemi enkazını iyice araştırın.",
+            "Bölge İpucu: Nautiloid'un keşfedilecek birçok sırrı var.",
+            "Bölge İpucu: Bilgi ve ödüller için yaralı hayatta kalanlara yardım edin.",
+            "Bölge İpucu: Beyin iribaşlarına dikkat edin - illithid enfeksiyonuna neden olurlar.",
         ],
         "Emerald Grove": [
-            "Region Tip: The druids might have important information about the tadpoles.",
-            "Region Tip: Help Halsin to gain a powerful ally.",
-            "Region Tip: The goblin leaders can be dealt with in multiple ways.",
-            "Region Tip: The tieflings' situation offers multiple resolution paths.",
+            "Bölge İpucu: Druidlerin iribaşlar hakkında önemli bilgileri olabilir.",
+            "Bölge İpucu: Güçlü bir müttefik kazanmak için Halsin'e yardım edin.",
+            "Bölge İpucu: Goblin liderleriyle birden çok şekilde başa çıkılabilir.",
+            "Bölge İpucu: Tieflingler'in durumu çözüm için çok yönlü yollar sunar.",
         ],
         "Blighted Village": [
-            "Region Tip: Check the windmill for a hidden cellar entrance.",
-            "Region Tip: The gnolls are dangerous but have valuable loot.",
-            "Region Tip: Look for hidden treasures in abandoned houses.",
-            "Region Tip: The Zhentarim have a presence here - choose interactions carefully.",
+            "Bölge İpucu: Gizli bir mahzen girişi için yel değirmenini kontrol edin.",
+            "Bölge İpucu: Gnollar tehlikelidir ancak değerli ganimetlere sahiptir.",
+            "Bölge İpucu: Terk edilmiş evlerde gizli hazineler arayın.",
+            "Bölge İpucu: Zhentarim'in burada bir varlığı var - etkileşimleri dikkatle seçin.",
         ],
         "Underdark": [
-            "Region Tip: The mushrooms in the Underdark have various effects.",
-            "Region Tip: The myconid colony offers unique quests and allies.",
-            "Region Tip: Watch for duergar patrols who might be hostile.",
-            "Region Tip: Some passages are hidden and require careful searching.",
+            "Bölge İpucu: Underdark'taki mantarların çeşitli etkileri vardır.",
+            "Bölge İpucu: Myconid kolonisi benzersiz görevler ve müttefikler sunar.",
+            "Bölge İpucu: Düşmanca olabilecek duergar devriyelerine dikkat edin.",
+            "Bölge İpucu: Bazı geçitler gizlidir ve dikkatli arama gerektirir.",
         ],
         "Moonrise Towers": [
-            "Region Tip: The Absolute's followers are numerous here - approach carefully.",
-            "Region Tip: Look for hidden passages in the complex structure.",
-            "Region Tip: Different factions here can be played against each other.",
+            "Bölge İpucu: Mutlak'ın takipçileri burada çok sayıda - dikkatle yaklaşın.",
+            "Bölge İpucu: Karmaşık yapıda gizli geçitler arayın.",
+            "Bölge İpucu: Buradaki farklı fraksiyonlar birbirine karşı oynatılabilir.",
         ],
         "Baldur's Gate": [
-            "Region Tip: The city has many districts, each with unique quests.",
-            "Region Tip: Various guilds offer faction quests with different rewards.",
-            "Region Tip: Street urchins often know valuable information about the city.",
-            "Region Tip: Watch for pickpockets in crowded areas.",
+            "Bölge İpucu: Şehirde her biri benzersiz görevlere sahip birçok bölge vardır.",
+            "Bölge İpucu: Çeşitli loncalar farklı ödüllerle fraksiyon görevleri sunar.",
+            "Bölge İpucu: Sokak çocukları genellikle şehir hakkında değerli bilgilere sahiptir.",
+            "Bölge İpucu: Kalabalık alanlarda yankesicilere dikkat edin.",
         ]
     },
     "keyword_triggered": {
         "quest": [
-            "Quest Tip: Check your journal for detailed quest objectives.",
-            "Quest Tip: Some quests have time-sensitive components.",
-            "Quest Tip: Side quests can provide valuable rewards and experience.",
-            "Quest Tip: Different quest solutions may affect your companions differently.",
+            "Görev İpucu: Detaylı görev hedefleri için günlüğünüzü kontrol edin.",
+            "Görev İpucu: Bazı görevlerin zamana duyarlı bileşenleri vardır.",
+            "Görev İpucu: Yan görevler değerli ödüller ve deneyim sağlayabilir.",
+            "Görev İpucu: Farklı görev çözümleri yoldaşlarınızı farklı şekilde etkileyebilir.",
         ],
         "battle": [
-            "Battle Tip: Consider using food buffs before difficult encounters.",
-            "Battle Tip: Some enemies have specific weaknesses you can exploit.",
-            "Battle Tip: Environmental effects can turn the tide of battle.",
-            "Battle Tip: Position your ranged attackers on high ground.",
+            "Savaş İpucu: Zorlu karşılaşmalardan önce yemek bonuslarını kullanmayı düşünün.",
+            "Savaş İpucu: Bazı düşmanların kullanabileceğiniz belirli zayıflıkları vardır.",
+            "Savaş İpucu: Çevresel etkiler savaşın gidişatını değiştirebilir.",
+            "Savaş İpucu: Menzilli saldırganlarınızı yüksek zeminde konumlandırın.",
         ],
         "trap": [
-            "Trap Tip: Characters with high perception can spot traps more easily.",
-            "Trap Tip: Some traps can be disarmed, others must be avoided.",
-            "Trap Tip: Use Find Traps spell if you suspect dangerous areas.",
-            "Trap Tip: Send expendable summons ahead if you suspect traps.",
+            "Tuzak İpucu: Yüksek algılamaya sahip karakterler tuzakları daha kolay görebilirler.",
+            "Tuzak İpucu: Bazı tuzaklar etkisiz hale getirilebilir, diğerlerinden kaçınılmalıdır.",
+            "Tuzak İpucu: Tehlikeli alanlardan şüpheleniyorsanız Tuzakları Bul büyüsünü kullanın.",
+            "Tuzak İpucu: Tuzaklardan şüpheleniyorsanız önden harcamaya değer çağrılmış varlıkları gönderin.",
         ],
         "chest": [
-            "Chest Tip: Some locked chests can be broken open if lockpicking fails.",
-            "Chest Tip: Check for traps before opening valuable-looking chests.",
-            "Chest Tip: Some chests require specific keys found elsewhere.",
-            "Chest Tip: Not all valuable items are in obvious containers.",
+            "Sandık İpucu: Bazı kilitli sandıklar maymuncuk açma başarısız olursa kırılabilir.",
+            "Sandık İpucu: Değerli görünen sandıkları açmadan önce tuzakları kontrol edin.",
+            "Sandık İpucu: Bazı sandıklar başka yerlerde bulunan belirli anahtarlar gerektirir.",
+            "Sandık İpucu: Tüm değerli eşyalar belirgin kaplarda değildir.",
         ],
         "spell": [
-            "Spell Tip: Area effect spells can hit allies - position carefully.",
-            "Spell Tip: Some spells interact with the environment in unique ways.",
-            "Spell Tip: Counter-spell can prevent enemy casters from using powerful spells.",
-            "Spell Tip: Concentration spells end if you take significant damage.",
+            "Büyü İpucu: Alan etkili büyüler müttefiklere isabet edebilir - dikkatli konumlanın.",
+            "Büyü İpucu: Bazı büyüler çevre ile benzersiz şekillerde etkileşime girer.",
+            "Büyü İpucu: Karşı Büyü, düşman büyücülerin güçlü büyüler kullanmasını önleyebilir.",
+            "Büyü İpucu: Önemli hasar alırsanız konsantrasyon büyüleri sona erer.",
         ]
     }
 }
@@ -349,63 +355,63 @@ BG3_TIPS = {
 
 def generate_recommendations(game_state: GameState) -> list[str]:
     """
-    Generates recommendations based on the current game state.
-    This is the core 'agent' logic.
+    Mevcut oyun durumuna göre öneriler oluşturur.
+    Bu, temel 'ajan' mantığıdır.
     """
-    logger.debug(f"Generating recommendations for state: {game_state}")
+    logger.debug(f"Şu durum için öneriler oluşturuluyor: {game_state}")
     recommendations = []
 
     # Zaman kontrolü
     current_time = time.time()
     time_since_last = current_time - game_state.last_tip_time
-    logger.debug(f"Time since last recommendation attempt: {time_since_last:.2f}s")
+    logger.debug(f"Son öneri denemesinden bu yana geçen süre: {time_since_last:.2f}sn")
 
     # 6 dakikalık bekleme süresi geçti mi kontrol et
     if time_since_last >= 360:
-        logger.info("Cooldown period passed. Attempting to generate new recommendations.")
+        logger.info("Bekleme süresi geçti. Yeni öneriler oluşturmaya çalışılıyor.")
         
-        # --- LLM-based recommendations ---
-        llm_client = LLMAPIClient()  # Initialize the LLMAPIClient instance
+        # --- LLM-bazlı öneriler ---
+        llm_client = LLMAPIClient()  # LLMAPIClient örneğini başlat
         try:
             if llm_client.is_available():
-                logger.info("Requesting recommendations from LLM API...")
+                logger.info("LLM API'den öneriler isteniyor...")
                 llm_recommendations = llm_client.get_recommendation(game_state)
                 
                 if llm_recommendations:
-                    logger.info(f"Using {len(llm_recommendations)} LLM-generated recommendations")
+                    logger.info(f"{len(llm_recommendations)} LLM-üretimi öneri kullanılıyor")
                     recommendations = [f"AI: {rec}" for rec in llm_recommendations]
                     # Öneri üretildi, son öneri zamanını güncelle
                     game_state.last_tip_time = current_time
                 else:
-                    logger.warning("LLM API returned no recommendations")
+                    logger.warning("LLM API hiç öneri döndürmedi")
             else:
-                logger.debug("LLM API not configured, no recommendations will be shown")
+                logger.debug("LLM API yapılandırılmamış, hiçbir öneri gösterilmeyecek")
         except ImportError:
-            logger.warning("LLM module not found, no recommendations will be shown")
+            logger.warning("LLM modülü bulunamadı, hiçbir öneri gösterilmeyecek")
         except Exception as e:
-            logger.error(f"Error getting LLM recommendations: {e}", exc_info=True)
+            logger.error(f"LLM önerileri alınırken hata: {e}", exc_info=True)
     else:
-        logger.debug(f"Cooldown active. Skipping recommendation generation. Time remaining: {360 - time_since_last:.2f}s")
+        logger.debug(f"Bekleme süresi aktif. Öneri oluşturma atlanıyor. Kalan süre: {360 - time_since_last:.2f}sn")
         return [] # Bekleme süresindeyken boş liste döndür
 
     # Önerileri sınırla
     recommendations = recommendations[:3]
-    logger.info(f"Generated {len(recommendations)} recommendations this cycle.")
+    logger.info(f"Bu döngüde {len(recommendations)} öneri oluşturuldu.")
     return recommendations
 
 
 if __name__ == '__main__':
-    # Example usage: Create a state and generate recommendations
-    print("Testing Decision Engine...")
+    # Örnek kullanım: Bir durum oluştur ve öneriler oluştur
+    print("Karar Motoru Test Ediliyor...")
     current_state = GameState()
-    # Simulate finding some text
+    # Bazı metin bulma simülasyonu
     test_text = "Entering region: Moonrise Towers\nSome other irrelevant text.\nJournal Updated"
     current_state.update_from_ocr(test_text)
-    current_state.character_class = "Cleric" # Simulate class detection
+    current_state.character_class = "Cleric" # Sınıf tespiti simülasyonu
 
-    print(f"Current State: {current_state}")
+    print(f"Mevcut Durum: {current_state}")
     recs = generate_recommendations(current_state)
 
-    print("\nGenerated Recommendations:")
+    print("\nOluşturulan Öneriler:")
     for rec in recs:
         print(f"- {rec}")

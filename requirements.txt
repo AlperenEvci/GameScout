@@ -1,4 +1,5 @@
 pyautogui
+dotenv
 pytesseract
 Pillow
 requests

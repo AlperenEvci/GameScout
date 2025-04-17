@@ -11,45 +11,45 @@ logger = get_logger(__name__)
 
 class HudWindow(threading.Thread):
     """
-    Manages the HUD display window in a separate thread using Tkinter.
+    Ayrı bir thread'de Tkinter kullanarak HUD ekranını yönetir.
     """
     def __init__(self, update_queue: queue.Queue):
-        super().__init__(daemon=True) # Daemon thread exits when main program exits
+        super().__init__(daemon=True) # Ana program sonlandığında thread'i sonlandır
         self.update_queue = update_queue
         self.root = None
         self.info_label = None
         self._stop_event = threading.Event()
 
     def stop(self):
-        """Signals the thread to stop."""
+        """Thread'in durmasını sağlar."""
         self._stop_event.set()
         if self.root:
-            # Schedule the destroy action to run in the Tkinter main loop
+            # Tkinter ana döngüsünde destroy işlemini planla
             self.root.after(0, self.root.destroy)
-        logger.info("HUD stop requested.")
+        logger.info("HUD durdurma isteği alındı.")
 
     def run(self):
-        """The main loop for the Tkinter window."""
-        logger.info("HUD thread starting.")
+        """Tkinter penceresi için ana döngü."""
+        logger.info("HUD thread başlatılıyor.")
         try:
             self.root = tk.Tk()
             self.root.title(f"{settings.APP_NAME} HUD")
             self.root.geometry(f"{settings.HUD_WIDTH}x{settings.HUD_HEIGHT}")
 
-            # Make window stay on top
+            # Pencereyi her zaman üstte tut
             self.root.wm_attributes("-topmost", 1)
-            # Make window (partially) transparent (may depend on OS/window manager)
+            # Pencereyi (kısmen) şeffaf yap (işletim sistemine/pencere yöneticisine bağlı olabilir)
             try:
                 self.root.attributes("-alpha", settings.HUD_TRANSPARENCY)
             except tk.TclError:
-                logger.warning("Window transparency (-alpha) not supported on this system.")
+                logger.warning("Pencere şeffaflığı (-alpha) bu sistemde desteklenmiyor.")
 
-            # Add a distinctive border to make HUD more visible
-            self.root.configure(bg="green")  # Bright color for the border
+            # HUD'u daha görünür kılmak için belirgin bir kenarlık ekle
+            self.root.configure(bg="green")  # Kenarlık için parlak renk
             
-            # --- Add HUD elements ---
+            # --- HUD elemanları ekle ---
             style = ttk.Style()
-            style.configure("TLabel", background="black", foreground="#00FF00", padding=5, font=('Helvetica', 10, 'bold'))  # Brighter text
+            style.configure("TLabel", background="black", foreground="#00FF00", padding=5, font=('Helvetica', 10, 'bold'))  # Daha parlak metin
             style.configure("TFrame", background="black")
 
             main_frame = ttk.Frame(self.root, padding="5", style="TFrame")
@@ -57,81 +57,81 @@ class HudWindow(threading.Thread):
 
             self.info_label = ttk.Label(
                 main_frame,
-                text="Initializing GameScout HUD...",
-                wraplength=settings.HUD_WIDTH - 20, # Wrap text within window width
+                text="GameScout HUD başlatılıyor...",
+                wraplength=settings.HUD_WIDTH - 20, # Metni pencere genişliğine sığdır
                 justify=tk.LEFT,
                 style="TLabel"
             )
             self.info_label.pack(pady=5, padx=5, anchor='nw')
 
-            # Schedule the first check for updates
+            # İlk güncelleme kontrolünü planla
             self.root.after(settings.HUD_UPDATE_INTERVAL_MS, self.check_queue)
 
-            logger.info("HUD window created. Starting main loop.")
+            logger.info("HUD penceresi oluşturuldu. Ana döngü başlatılıyor.")
             self.root.mainloop()
 
         except Exception as e:
-            logger.error(f"Error in HUD thread: {e}", exc_info=True)
+            logger.error(f"HUD thread'de hata: {e}", exc_info=True)
         finally:
-            logger.info("HUD thread finished.")
-            self.root = None # Ensure root is cleared if loop exits
+            logger.info("HUD thread sonlandı.")
+            self.root = None # Döngü çıkışında root'un temizlendiğinden emin ol
 
     def check_queue(self):
-        """Checks the queue for new text and updates the label."""
+        """Kuyruğu yeni metin için kontrol eder ve etiketi günceller."""
         if self._stop_event.is_set():
-            logger.debug("Stop event set, skipping queue check.")
-            return # Don't reschedule if stopping
+            logger.debug("Durdurma etkinliği ayarlandı, kuyruk kontrolü atlanıyor.")
+            return # Durduruluyorsa yeniden planlamayın
 
         try:
-            # Process all available messages in the queue non-blockingly
+            # Kuyruktaki tüm mevcut mesajları bloke olmadan işle
             while True:
                 try:
                     new_text = self.update_queue.get_nowait()
-                    if self.info_label and self.root: # Check if widgets still exist
+                    if self.info_label and self.root: # Widget'ların hala var olup olmadığını kontrol et
                         self.info_label.config(text=new_text)
-                        logger.debug(f"HUD updated with new text: {new_text[:50]}...")
+                        logger.debug(f"HUD yeni metinle güncellendi: {new_text[:50]}...")
                     self.update_queue.task_done()
                 except queue.Empty:
-                    break # No more messages
+                    break # Başka mesaj yok
                 except tk.TclError as e:
-                     # Handle cases where the widget might be destroyed during update
-                     logger.warning(f"Tkinter error during HUD update (widget likely destroyed): {e}")
-                     break # Stop trying to update if widget is gone
+                     # Widget'ın güncelleme sırasında yok edilebileceği durumları ele al
+                     logger.warning(f"HUD güncellemesi sırasında Tkinter hatası (muhtemelen widget yok edildi): {e}")
+                     break # Widget yoksa güncellemeyi denemeye devam etme
                 except Exception as e:
-                    logger.error(f"Error processing HUD update queue: {e}", exc_info=True)
-                    break # Avoid potential infinite loop on unexpected errors
+                    logger.error(f"HUD güncelleme kuyruğunu işlerken hata: {e}", exc_info=True)
+                    break # Beklenmeyen hatalarda potansiyel sonsuz döngüden kaçının
 
 
         except Exception as e:
-            logger.error(f"Error in check_queue: {e}", exc_info=True)
+            logger.error(f"check_queue içinde hata: {e}", exc_info=True)
 
-        # Reschedule the check only if not stopping and root exists
+        # Durdurulmuyorsa ve root varsa kontrolü yeniden planla
         if not self._stop_event.is_set() and self.root:
             self.root.after(settings.HUD_UPDATE_INTERVAL_MS, self.check_queue)
 
 
 if __name__ == '__main__':
-    # Example usage: Start the HUD and send updates
-    print("Testing HUD Display...")
+    # Örnek kullanım: HUD'ı başlat ve güncellemeler gönder
+    print("HUD Ekranı Test Ediliyor...")
     q = queue.Queue()
     hud = HudWindow(q)
     hud.start()
-    print("HUD thread started. Sending test messages...")
+    print("HUD thread başlatıldı. Test mesajları gönderiliyor...")
 
     try:
-        # Send some test messages
-        q.put("Test Message 1: Welcome!")
+        # Bazı test mesajları gönder
+        q.put("Test Mesajı 1: Hoş Geldiniz!")
         import time
         time.sleep(2)
-        q.put("Test Message 2: This is a longer message that should wrap around nicely within the HUD window bounds.")
+        q.put("Test Mesajı 2: Bu, HUD pencere sınırları içinde güzelce sarılması gereken daha uzun bir mesajdır.")
         time.sleep(2)
-        q.put("Test Message 3: Updating again...")
-        time.sleep(5) # Keep running for a bit
+        q.put("Test Mesajı 3: Tekrar güncelleniyor...")
+        time.sleep(5) # Bir süre çalışmaya devam et
 
     except KeyboardInterrupt:
-        print("\nKeyboard interrupt received.")
+        print("\nKlavye kesintisi alındı.")
     finally:
-        print("Stopping HUD...")
+        print("HUD durduruluyor...")
         hud.stop()
-        hud.join(timeout=2) # Wait for the thread to finish
-        print("HUD test finished.")
+        hud.join(timeout=2) # Thread'in bitmesini bekle
+        print("HUD testi tamamlandı.")
