@@ -60,14 +60,14 @@ SCRAPER_USER_AGENT = f"{APP_NAME}/{VERSION} (GameScout Application)" # Be polite
 DEFAULT_CHARACTER_CLASS = "Wizard"
 
 # --- LLM API Settings ---
-# Set to "none" to disable, or choose "openai", "gemini" or "azure"
-LLM_PROVIDER = "gemini"  # Set to "openai", "gemini", "azure" or "none"
-# Get your API key from https://ai.google.dev/ (for Gemini) or environment
-LLM_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-# Set LLM API endpoint - updated with newer model support
-LLM_API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent"
+# Set to "none" to disable, or choose "openai", "gemini", "deepseek" or "azure"
+LLM_PROVIDER = "deepseek"  # Set to "openai", "gemini", "deepseek", "azure" or "none"
+# Get your API key from https://deepseek.ai (for DeepSeek) or environment
+LLM_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
+# Set LLM API endpoint
+LLM_API_ENDPOINT = "https://api.deepseek.com/v1/chat/completions"
 # Model to use 
-LLM_MODEL = "gemini-1.5-pro"  # Using standard Gemini 1.5 Pro model with free quota
+LLM_MODEL = "deepseek-chat"  # DeepSeek Chat model
 # Temperature (randomness) - lower for more consistent responses
 LLM_TEMPERATURE = 0.7
 # Maximum tokens in response
@@ -93,6 +93,11 @@ Bölge Görevleri:
 Bu bilgileri kullanarak bana oyundaki mevcut durumuma göre 3-5 kısa, pratik öneri/tavsiye ver. 
 Bulunduğum bölgedeki değerli eşyaları, taktikleri, görevleri veya karakter sınıfıma özgü ipuçlarını içersin. 
 Tavsiyeler kısa ve direkt olsun."""
+
+# LangChain Web Search Settings
+ENABLE_WEB_SEARCH = True  # Set to False to disable web search
+WEB_SEARCH_MAX_RESULTS = 3  # Maximum number of search results to retrieve
+WEB_SEARCH_TIMEOUT = 10  # Timeout in seconds for web search requests
 
 # --- UI Settings ---
 HUD_UPDATE_INTERVAL_MS = 1000 # How often the HUD refreshes

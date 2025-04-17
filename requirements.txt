@@ -4,6 +4,11 @@ Pillow
 requests
 beautifulsoup4
 python-dotenv
+langchain
+langchain-community
+langchain-core
+deepseek-ai
+duckduckgo-search
 # Optional: Add a GUI library like PyQt5 or Kivy if tkinter is not sufficient
 # PyQt5
 # Kivy

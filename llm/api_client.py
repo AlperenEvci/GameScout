@@ -6,10 +6,20 @@ import os
 from config import settings
 from utils.helpers import get_logger
 
+# LangChain imports
+try:
+    from langchain_community.llms import DeepSeek
+    from langchain_core.prompts import PromptTemplate
+    from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
+    from langchain_core.callbacks import CallbackManager, StdOutCallbackHandler
+    LANGCHAIN_AVAILABLE = True
+except ImportError:
+    LANGCHAIN_AVAILABLE = False
+
 logger = get_logger(__name__)
 
 class LLMAPIClient:
-    """Client for interacting with LLM APIs (OpenAI, Gemini, etc.)"""
+    """Client for interacting with LLM APIs (OpenAI, Gemini, DeepSeek, etc.)"""
     
     def __init__(self):
         """Initialize the LLM API client with settings from config."""
@@ -22,6 +32,17 @@ class LLMAPIClient:
         
         if not self.api_key and self.provider != "none":
             logger.warning("LLM API key not configured. Dynamic recommendations will be disabled.")
+            
+        # Initialize LangChain components if available
+        self.search_wrapper = None
+        if LANGCHAIN_AVAILABLE and settings.ENABLE_WEB_SEARCH:
+            try:
+                self.search_wrapper = DuckDuckGoSearchAPIWrapper(
+                    max_results=settings.WEB_SEARCH_MAX_RESULTS
+                )
+                logger.info("Web search initialized using DuckDuckGo")
+            except Exception as e:
+                logger.error(f"Error initializing web search: {e}")
     
     def is_available(self):
         """Check if the LLM API is configured and available."""
@@ -45,11 +66,27 @@ class LLMAPIClient:
         # Build a prompt based on game state and prompt type
         prompt = self._build_prompt(game_state, prompt_type)
         
+        # Perform web search if enabled
+        web_search_results = []
+        if self.search_wrapper and settings.ENABLE_WEB_SEARCH:
+            search_query = f"Baldur's Gate 3 {game_state.current_region or ''} {game_state.character_class or ''} guide tips"
+            try:
+                logger.info(f"Performing web search for: {search_query}")
+                web_search_results = self.search_wrapper.run(search_query)
+                logger.info(f"Web search returned {len(web_search_results.split('Results:'))} results")
+                
+                # Add web search results to prompt
+                prompt += "\n\nİlgili Web Arama Sonuçları:\n" + web_search_results
+            except Exception as e:
+                logger.error(f"Error performing web search: {e}")
+        
         # Call appropriate provider method based on settings
         if self.provider.lower() == "openai":
             return self._call_openai_api(prompt)
         elif self.provider.lower() == "gemini":
             return self._call_gemini_api(prompt)
+        elif self.provider.lower() == "deepseek":
+            return self._call_deepseek_api(prompt)
         elif self.provider.lower() == "azure":
             return self._call_azure_openai_api(prompt)
         else:
@@ -92,6 +129,85 @@ class LLMAPIClient:
         
         logger.debug(f"Built LLM prompt: {prompt[:100]}...")
         return prompt
+    
+    def _call_deepseek_api(self, prompt):
+        """Call the DeepSeek API with the given prompt."""
+        try:
+            if LANGCHAIN_AVAILABLE:
+                # Use LangChain for DeepSeek
+                logger.info("Using LangChain for DeepSeek API call")
+                callback_manager = CallbackManager([StdOutCallbackHandler()])
+                
+                # Initialize the DeepSeek LLM
+                llm = DeepSeek(
+                    deepseek_api_key=self.api_key,
+                    model_name=self.model,
+                    temperature=settings.LLM_TEMPERATURE,
+                    max_tokens=settings.LLM_MAX_TOKENS,
+                    callback_manager=callback_manager
+                )
+                
+                # Create template and format prompt
+                template = "{system}\n\n{user_query}"
+                prompt_template = PromptTemplate(
+                    input_variables=["system", "user_query"],
+                    template=template
+                )
+                
+                formatted_prompt = prompt_template.format(
+                    system=settings.LLM_SYSTEM_PROMPT,
+                    user_query=prompt
+                )
+                
+                # Generate response
+                response = llm.invoke(formatted_prompt)
+                
+                # Parse the response into recommendations
+                recommendations = self._parse_recommendations(response)
+                logger.info(f"Generated {len(recommendations)} recommendations via LangChain & DeepSeek")
+                return recommendations
+                
+            else:
+                # Fallback to direct API call
+                logger.info("LangChain not available, falling back to direct API call")
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {self.api_key}"
+                }
+                
+                data = {
+                    "model": self.model,
+                    "messages": [
+                        {"role": "system", "content": settings.LLM_SYSTEM_PROMPT},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": settings.LLM_TEMPERATURE,
+                    "max_tokens": settings.LLM_MAX_TOKENS
+                }
+                
+                response = requests.post(
+                    self.api_endpoint,
+                    headers=headers,
+                    data=json.dumps(data),
+                    timeout=self.timeout
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    if "choices" in result and len(result["choices"]) > 0:
+                        content = result["choices"][0]["message"]["content"]
+                        recommendations = self._parse_recommendations(content)
+                        logger.info(f"Received {len(recommendations)} recommendations from DeepSeek API")
+                        return recommendations
+                    else:
+                        logger.error(f"Unexpected response format from DeepSeek API: {result}")
+                else:
+                    logger.error(f"DeepSeek API error: {response.status_code}, {response.text[:500]}")
+                    
+        except Exception as e:
+            logger.error(f"Error calling DeepSeek API: {e}", exc_info=True)
+        
+        return []  # Return empty list on error
     
     def _call_openai_api(self, prompt):
         """Call the OpenAI API with the given prompt."""
