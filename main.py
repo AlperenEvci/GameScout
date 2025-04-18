@@ -1,18 +1,24 @@
+#!/usr/bin/env python3
 # gamescout/main.py
 
 import time
 import queue
 import sys
 import os
+import threading
 from config import settings
 from utils.helpers import get_logger
 from capture import screen_capture, ocr_processor
 from agent import decision_engine
+from agent.rag import RAGAssistant  # Yeni RAGAssistant sınıfını içe aktarıyoruz
 from ui import hud_display
 from data.cache_all_regions import cache_all_regions
 # from data import forum_scraper # İhtiyaç olduğunda ana döngüde içe aktarın
 
 logger = get_logger(settings.APP_NAME)
+
+# Global RAG Asistanı
+rag_assistant = None
 
 def check_dependencies():
     """Tüm gerekli bağımlılıkların mevcut olup olmadığını kontrol et."""
@@ -99,8 +105,43 @@ def check_map_data_cache():
     else:
         logger.info("Tüm bölgelerin cache verileri güncel.")
 
+def process_command_input(hud_update_queue):
+    """Kullanıcının komut satırından gönderdiği soruları işleyen işlev."""
+    global rag_assistant
+    
+    print("\nGameScout RAG Asistanı hazır! Oyunla ilgili sorular sorabileceğiniz komut satırı.")
+    print("Çıkmak için 'quit', 'exit' veya 'q' yazın.\n")
+    
+    while True:
+        try:
+            user_input = input("Soru > ")
+            
+            if user_input.lower() in ["quit", "exit", "q"]:
+                print("RAG Asistanı kapatılıyor...")
+                break
+                
+            if not user_input.strip():
+                continue
+                
+            if rag_assistant and rag_assistant.is_initialized:
+                # Sorguyu RAG Asistanına yolla
+                logger.info(f"Kullanıcı sorusu gönderiliyor: {user_input}")
+                response = rag_assistant.ask_game_ai(user_input)
+                print(f"\nYanıt: {response}\n")
+            else:
+                print("RAG Asistanı henüz başlatılmamış veya başlatılamadı.")
+                
+        except KeyboardInterrupt:
+            print("\nRAG Asistanı kapatılıyor...")
+            break
+        except Exception as e:
+            logger.error(f"Soru işlenirken hata: {str(e)}")
+            print(f"Hata: {str(e)}")
+
 def main_loop():
     """GameScout için ana yürütme döngüsü."""
+    global rag_assistant
+    
     logger.info(f"{settings.APP_NAME} v{settings.VERSION} başlatılıyor")
     
     # Başlamadan önce bağımlılıkları kontrol et
@@ -116,16 +157,37 @@ def main_loop():
     hud = hud_display.HudWindow(hud_update_queue)
     hud.start() # HUD iş parçacığını başlat
 
+    # RAG Asistanını başlat
+    try:
+        rag_assistant = RAGAssistant()
+        if not rag_assistant.initialize():
+            logger.error("RAG Asistanı başlatılamadı.")
+            rag_assistant = None
+        else:
+            logger.info("RAG Asistanı başarıyla başlatıldı.")
+    except Exception as e:
+        logger.error(f"RAG Asistanı başlatılırken hata: {str(e)}")
+        rag_assistant = None
+
     # Karakter sınıfını ayarla
     game_state.character_class = settings.DEFAULT_CHARACTER_CLASS
     logger.info(f"Karakter sınıfı '{game_state.character_class}' olarak ayarlandı.")
+
+    # Komut satırı sorgu iş parçacığını başlat
+    command_thread = threading.Thread(
+        target=process_command_input,
+        args=(hud_update_queue,),
+        daemon=True
+    )
+    command_thread.start()
 
     try:
         # İlk mesaj
         hud_update_queue.put("GameScout Başlatılıyor...")
         
-        # Karakter sınıfını içeren başlangıç mesajı göster
-        hud_update_queue.put(f"GameScout Hazır!\nKarakter Sınıfı: {game_state.character_class}\nBölge: Aranıyor...")
+        # Karakter sınıfını ve RAG durumunu içeren başlangıç mesajı göster
+        rag_status = "HAZIR" if rag_assistant and rag_assistant.is_initialized else "DEVRE DIŞI"
+        hud_update_queue.put(f"GameScout Hazır!\nKarakter Sınıfı: {game_state.character_class}\nBölge: Aranıyor...\nRAG Asistanı: {rag_status}")
         time.sleep(2)  # Başlangıç mesajını göstermek için kısa bir süre bekle
 
         while True:
@@ -175,6 +237,12 @@ def main_loop():
                         hud_text += "Öneriler:\n" + "\n".join(f"• {rec}" for rec in recommendations)
                     else:
                         hud_text += "Öneriler: Şu an mevcut değil."
+                        
+                    # RAG durumunu göster
+                    rag_status = "HAZIR" if rag_assistant and rag_assistant.is_initialized else "DEVRE DIŞI"
+                    hud_text += f"\n\nRAG Asistanı: {rag_status}"
+                    if rag_assistant and rag_assistant.is_initialized:
+                        hud_text += "\nSoru sormak için komut satırını kullanın."
                     
                     hud_update_queue.put(hud_text)
                 else:
@@ -206,6 +274,11 @@ def main_loop():
         except Exception:
             pass # Kapatma bildirimi sırasındaki hataları yoksay
     finally:
+        # RAG Asistanını kapat
+        if rag_assistant:
+            logger.info("RAG Asistanı kapatılıyor...")
+            rag_assistant.shutdown()
+            
         logger.info("HUD iş parçacığı durduruluyor...")
         hud.stop()
         hud.join(timeout=2) # HUD iş parçacığının bitmesini bekle
