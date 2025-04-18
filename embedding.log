@@ -1,0 +1,16 @@
+2025-04-19 00:28:53,455 - INFO - Starting document embedding process
+2025-04-19 00:28:53,455 - WARNING - No JSON files found in data/wiki_processed. Run scraper.py first.
+2025-04-19 01:12:21,219 - INFO - Starting document embedding process
+2025-04-19 01:12:21,220 - WARNING - No JSON files found in data/wiki_processed. Run scraper.py first.
+2025-04-19 01:26:40,914 - INFO - Starting document embedding process
+2025-04-19 01:26:40,919 - INFO - Loading 1121 documents...
+2025-04-19 01:26:48,927 - INFO - Loaded 1121 documents successfully
+2025-04-19 01:26:48,936 - INFO - Loading embedding model: all-MiniLM-L6-v2
+2025-04-19 01:26:48,938 - INFO - Use pytorch device_name: cpu
+2025-04-19 01:26:48,938 - INFO - Load pretrained SentenceTransformer: all-MiniLM-L6-v2
+2025-04-19 01:26:54,545 - WARNING - Xet Storage is enabled for this repo, but the 'hf_xet' package is not installed. Falling back to regular HTTP download. For better performance, install the package with: `pip install huggingface_hub[hf_xet]` or `pip install hf_xet`
+2025-04-19 01:27:55,091 - INFO - Generating embeddings for 1121 documents...
+2025-04-19 01:28:19,301 - INFO - Embeddings created with dimension: 384
+2025-04-19 01:28:19,330 - INFO - Saved 1121 embeddings to vector_db\embeddings.npy
+2025-04-19 01:28:19,330 - INFO - Saved metadata to vector_db\metadata.json
+2025-04-19 01:28:19,330 - INFO - Document embedding completed successfully

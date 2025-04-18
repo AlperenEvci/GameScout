@@ -9,8 +9,40 @@ from data.map_data import get_nearby_points_of_interest, get_quests_for_region
 from data.web_search import search_game_content, get_region_information
 from llm.api_client import LLMAPIClient
 import re
+import sys
+import os
+import logging
+from pathlib import Path
+
+# Add project root to Python path for imports
+project_root = Path(__file__).parent.parent
+if project_root not in sys.path:
+    sys.path.append(str(project_root))
+
+# Try to import BG3KnowledgeBase from query module
+try:
+    from query import BG3KnowledgeBase
+except ImportError:
+    BG3KnowledgeBase = None
 
 logger = get_logger(__name__)
+
+# Initialize the BG3 Knowledge Base
+bg3_kb = None
+if BG3KnowledgeBase is not None:
+    bg3_kb = BG3KnowledgeBase()
+    try:
+        kb_init_success = bg3_kb.initialize()
+        if kb_init_success:
+            logger.info("Baldur's Gate 3 Knowledge Base initialized successfully")
+        else:
+            logger.warning("Failed to initialize Baldur's Gate 3 Knowledge Base")
+            bg3_kb = None
+    except Exception as e:
+        logger.error(f"Error initializing BG3 Knowledge Base: {str(e)}")
+        bg3_kb = None
+else:
+    logger.info("BG3 Knowledge Base module not found, RAG features will be disabled")
 
 class GameState:
     """Oyunun mevcut algılanan durumunu temsil eder."""

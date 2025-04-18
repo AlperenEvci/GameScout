@@ -8,3 +8,5 @@
 __pycache__/
 *.py[cod]
 *$py.class
+/data/wiki_raw
+/data/wiki_processed

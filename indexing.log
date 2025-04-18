@@ -1,0 +1,11 @@
+2025-04-19 00:28:30,866 - INFO - Starting FAISS indexing process
+2025-04-19 00:28:30,866 - ERROR - Embeddings file not found: vector_db\embeddings.npy
+2025-04-19 00:28:30,866 - ERROR - Run embedder.py first!
+2025-04-19 01:28:46,501 - INFO - Starting FAISS indexing process
+2025-04-19 01:28:46,509 - INFO - Loaded embeddings with shape: (1121, 384)
+2025-04-19 01:28:46,525 - INFO - Loaded metadata for 1121 documents
+2025-04-19 01:28:46,525 - INFO - Building FAISS index with 1121 vectors of dimension 384
+2025-04-19 01:28:46,526 - INFO - FAISS index built in 0.00s with 1121 vectors
+2025-04-19 01:28:46,528 - INFO - FAISS index saved to vector_db\bg3_knowledge.faiss in 0.00s
+2025-04-19 01:28:46,531 - INFO - Metadata saved to vector_db\bg3_knowledge_metadata.pkl
+2025-04-19 01:28:46,531 - INFO - FAISS indexing completed successfully

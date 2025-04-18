@@ -2,14 +2,19 @@ pyautogui
 dotenv
 pytesseract
 Pillow
-requests
-beautifulsoup4
+requests>=2.28.1
+beautifulsoup4>=4.11.1
 python-dotenv
 langchain
 langchain-community
 langchain-core
 deepseek-ai
 duckduckgo-search
+sentence-transformers>=2.2.2
+faiss-cpu>=1.7.3
+numpy>=1.23.4
+tqdm>=4.64.1
+
 # Optional: Add a GUI library like PyQt5 or Kivy if tkinter is not sufficient
 # PyQt5
 # Kivy
