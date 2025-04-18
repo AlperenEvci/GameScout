@@ -3,11 +3,13 @@
 import time
 import queue
 import sys
+import os
 from config import settings
 from utils.helpers import get_logger
 from capture import screen_capture, ocr_processor
 from agent import decision_engine
 from ui import hud_display
+from data.cache_all_regions import cache_all_regions
 # from data import forum_scraper # İhtiyaç olduğunda ana döngüde içe aktarın
 
 logger = get_logger(settings.APP_NAME)
@@ -54,8 +56,48 @@ def check_dependencies():
             print("\nAlternatif olarak, config/settings.py içindeki OCR_LANGUAGE'ı 'eng' olarak değiştirebilirsiniz")
             print("===========================================\n")
             return False
+    
+    # Harita verilerini kontrol et ve eksik olanları oluştur
+    check_map_data_cache()        
             
     return True
+
+def check_map_data_cache():
+    """Tüm bölgelerin cache dosyalarını kontrol eder ve eksik olanları oluşturur."""
+    from data.map_data import GAME_REGIONS, get_cached_filename, is_cache_valid
+    
+    logger.info("Harita verileri cache'i kontrol ediliyor...")
+    cache_dir = os.path.join(os.path.dirname(__file__), "cache")
+    
+    # Cache klasörünün var olup olmadığını kontrol et
+    if not os.path.exists(cache_dir):
+        os.makedirs(cache_dir)
+        logger.info("Cache klasörü oluşturuldu.")
+    
+    # Eksik veya güncel olmayan bölgeleri kontrol et
+    missing_regions = []
+    for region_name in GAME_REGIONS:
+        cache_file = get_cached_filename(region_name)
+        if not os.path.exists(cache_file) or not is_cache_valid(cache_file):
+            missing_regions.append(region_name)
+    
+    # Eksik bölgeler varsa önbelleğe al
+    if missing_regions:
+        num_missing = len(missing_regions)
+        logger.info(f"{num_missing} bölge için eksik veya güncel olmayan cache dosyası tespit edildi.")
+        print(f"\n{num_missing} bölge için harita verileri önbelleğe alınıyor...")
+        
+        # Kullanıcıya bilgi ver ve önbellek işlemini başlat
+        cached, failed = cache_all_regions()
+        
+        if failed:
+            logger.warning(f"{len(failed)} bölge önbelleğe alınamadı: {', '.join(failed)}")
+            print(f"Uyarı: {len(failed)} bölge önbelleğe alınamadı.")
+        else:
+            logger.info("Tüm harita verileri başarıyla önbelleğe alındı.")
+            print("Tüm harita verileri başarıyla önbelleğe alındı!")
+    else:
+        logger.info("Tüm bölgelerin cache verileri güncel.")
 
 def main_loop():
     """GameScout için ana yürütme döngüsü."""
@@ -74,9 +116,17 @@ def main_loop():
     hud = hud_display.HudWindow(hud_update_queue)
     hud.start() # HUD iş parçacığını başlat
 
+    # Karakter sınıfını ayarla
+    game_state.character_class = settings.DEFAULT_CHARACTER_CLASS
+    logger.info(f"Karakter sınıfı '{game_state.character_class}' olarak ayarlandı.")
+
     try:
         # İlk mesaj
         hud_update_queue.put("GameScout Başlatılıyor...")
+        
+        # Karakter sınıfını içeren başlangıç mesajı göster
+        hud_update_queue.put(f"GameScout Hazır!\nKarakter Sınıfı: {game_state.character_class}\nBölge: Aranıyor...")
+        time.sleep(2)  # Başlangıç mesajını göstermek için kısa bir süre bekle
 
         while True:
             start_time = time.time()
@@ -103,7 +153,8 @@ def main_loop():
                     recommendations = decision_engine.generate_recommendations(game_state)
 
                     # 5. Biçimlendir ve HUD'a Gönder
-                    hud_text = f"Bölge: {game_state.current_region or 'Bilinmiyor'}\n\n"
+                    hud_text = f"Bölge: {game_state.current_region or 'Bilinmiyor'}\n"
+                    hud_text += f"Sınıf: {game_state.character_class}\n\n"
                     
                     # Yakındaki önemli noktaları ekle
                     if game_state.nearby_points_of_interest:

@@ -57,7 +57,7 @@ SCRAPER_USER_AGENT = f"{APP_NAME}/{VERSION} (GameScout Application)" # Be polite
 
 # --- Agent Settings ---
 # Placeholder for character class or other agent logic triggers
-DEFAULT_CHARACTER_CLASS = "Wizard"
+DEFAULT_CHARACTER_CLASS = "Fighter"
 
 # --- LLM API Settings ---
 # Set to "none" to disable, or choose "openai", "gemini", "deepseek", "openrouter" or "azure"
