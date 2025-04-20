@@ -20,6 +20,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# FAISS için log seviyesini düzenle (GPU hata mesajını gizlemek için)
+logging.getLogger('faiss').setLevel(logging.ERROR)
+
 # Constants
 VECTOR_DB_DIR = "vector_db"
 EMBEDDINGS_FILE = os.path.join(VECTOR_DB_DIR, "embeddings.npy")

@@ -5,6 +5,8 @@ import os
 import pickle
 import logging
 import argparse
+# FAISS için log seviyesini düzenle (GPU hata mesajını gizlemek için)
+logging.getLogger('faiss').setLevel(logging.ERROR)
 import faiss
 from sentence_transformers import SentenceTransformer
 
@@ -23,6 +25,17 @@ VECTOR_DB_DIR = "vector_db"
 FAISS_INDEX_FILE = os.path.join(VECTOR_DB_DIR, "bg3_knowledge.faiss")
 FAISS_METADATA_FILE = os.path.join(VECTOR_DB_DIR, "bg3_knowledge_metadata.pkl")
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+
+# GPU kullanımını kontrol et
+def try_use_faiss_gpu():
+    """FAISS GPU sürümünün kullanılabilir olup olmadığını kontrol et ve sessizce başarısız ol"""
+    try:
+        # GPU desteği varsa kullan
+        res = faiss.StandardGpuResources()
+        return res
+    except (ImportError, AttributeError):
+        # GPU desteği yoksa sessizce CPU'ya geri dön
+        return None
 
 
 class BG3KnowledgeBase:

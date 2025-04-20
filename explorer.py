@@ -1,4 +1,7 @@
 import streamlit as st
+import logging
+# FAISS GPU hatası mesajını gizle
+logging.getLogger('faiss').setLevel(logging.ERROR)
 import faiss
 import pickle
 import json
