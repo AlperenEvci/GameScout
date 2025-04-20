@@ -5,6 +5,7 @@ import os
 import sys
 import logging
 import queue
+import time
 from pathlib import Path
 
 # Proje kök dizinini ekleyerek diğer modülleri içe aktarabilmemizi sağlayalım
@@ -32,6 +33,8 @@ class RAGAssistant:
         self.hud_queue = queue.Queue()
         self.hud = None
         self.is_initialized = False
+        self.last_query_time = 0
+        self.rate_limit = 3  # Saniye cinsinden sorgu sıklığı limiti
         
     def initialize(self):
         """Bilgi tabanını ve HUD'u başlat."""
@@ -78,6 +81,7 @@ class RAGAssistant:
         Aşağıdaki bağlamları kullanarak kullanıcının sorusuna yanıt ver. 
         Cevabın net, kısa ve doğru olsun. Sadece verilen bağlamlara dayanarak cevap ver.
         Eğer bağlamlarda cevap yoksa, "Bu konu hakkında yeterli bilgim yok" şeklinde yanıt ver.
+        Sen bir Baldur's Gate 3 oyunu asistanısın ve görevin oyuncuya yardımcı olmaktır.
         
         Bağlamlar:
         """
@@ -85,7 +89,11 @@ class RAGAssistant:
         for i, context in enumerate(contexts, 1):
             prompt += f"\n--- Bağlam {i} ---\n"
             prompt += f"Başlık: {context.get('title', 'Başlık yok')}\n"
-            prompt += f"İçerik: {context.get('content', 'İçerik yok')[:1000]}\n"  # İçeriği kısaltarak LLM token limitlerini aşmayı önle
+            content = context.get('content', 'İçerik yok')
+            # İçeriği LLM token limitlerini aşmamak için kısalt
+            if len(content) > 1000:
+                content = content[:1000] + "..."
+            prompt += f"İçerik: {content}\n"
         
         return prompt
     
@@ -113,6 +121,13 @@ class RAGAssistant:
             logger.error(f"LLM yanıtı alınırken hata: {str(e)}")
             return f"Hata oluştu: {str(e)}"
     
+    def _is_rate_limited(self):
+        """Sorgu hızı sınırına ulaşılıp ulaşılmadığını kontrol et"""
+        current_time = time.time()
+        if current_time - self.last_query_time < self.rate_limit:
+            return True
+        return False
+    
     def ask_game_ai(self, user_input):
         """
         Oyuncu sorusunu al, RAG sistemini kullanarak yanıtla ve HUD'da göster.
@@ -127,7 +142,18 @@ class RAGAssistant:
             logger.error("RAG Asistanı başlatılmadı. initialize() metodunu çağırın.")
             return "RAG Asistanı başlatılmadı."
         
+        # Sorgu sıklığı kontrolü yap
+        if self._is_rate_limited():
+            wait_time = self.rate_limit - (time.time() - self.last_query_time)
+            msg = f"Lütfen {wait_time:.1f} saniye bekleyin..."
+            logger.info(f"Sorgu sıklığı sınırına takıldı: {msg}")
+            self.hud_queue.put(msg)
+            return msg
+        
         try:
+            # Sorgu zamanını güncelle
+            self.last_query_time = time.time()
+            
             # Kullanıcı girdi bilgisini günlüğe kaydet
             logger.info(f"Kullanıcı sorusu: {user_input}")
             
@@ -135,7 +161,7 @@ class RAGAssistant:
             self.hud_queue.put(f"'{user_input}' için yanıt aranıyor...")
             
             # Bilgi tabanında arama yap
-            contexts = self.rag_search(user_input, top_k=3)
+            contexts = self.rag_search(user_input, top_k=5)  # Daha fazla bağlam getir
             
             if not contexts:
                 response = "Bu konu hakkında bilgi bulunamadı."
@@ -148,8 +174,14 @@ class RAGAssistant:
             # LLM'e gönder ve yanıtı al
             response = self.ask_llm(prompt)
             
-            # HUD'da göster
-            self.hud_queue.put(f"Soru: {user_input}\n\nYanıt: {response}")
+            # HUD'da göster (daha düzenli ve okunaklı)
+            formatted_response = f"""
+📝 Soru: {user_input}
+
+🔍 Yanıt: 
+{response}
+            """
+            self.hud_queue.put(formatted_response)
             
             return response
             

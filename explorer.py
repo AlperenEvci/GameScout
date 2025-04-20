@@ -36,15 +36,46 @@ query = st.text_input("🧠 Sorgu girin", "")
 top_k = st.slider("🔢 Kaç sonuç dönsün?", 1, 10, 3)
 
 if query:
+    # Sorguyu vektöre dönüştür
     query_vector = model.encode([query])
+    
+    # Vektör veritabanında arama yap
     D, I = index.search(np.array(query_vector).astype("float32"), top_k)
-
+    
+    # Sonuçları göster
     st.subheader("🎯 Eşleşen Sonuçlar:")
-    for idx in I[0]:
-        doc = metadata[idx]
-        st.markdown(f"### 🧾 {doc.get('title', 'No Title')}")
-    if 'url' in doc:
-        st.markdown(f"[🔗 Kaynak Link]({doc['url']})")
-    st.text_area("📚 İçerik", doc.get("content", "No Content")[:600] + "…", height=200, key=f"text_{idx}")
-    st.markdown("---")
+    
+    # Bulunan her sonuç için
+    for i, idx in enumerate(I[0]):
+        if idx != -1:  # Geçerli bir indeks ise
+            doc = metadata[idx]
+            
+            # Başlık
+            st.markdown(f"### 🧾 {doc.get('title', 'Başlık Yok')}")
+            
+            # URL varsa göster
+            if 'url' in doc:
+                st.markdown(f"[🔗 Kaynak Link]({doc['url']})")
+            
+            # Benzerlik skoru
+            similarity = 1.0 / (1.0 + D[0][i])  # Mesafeyi benzerlik skoruna çevir
+            st.progress(float(similarity))
+            st.text(f"Benzerlik: {similarity:.2f}")
+            
+            # İçerik
+            content = doc.get("content", "İçerik Yok")
+            st.text_area("📚 İçerik", content[:600] + ("..." if len(content) > 600 else ""), 
+                         height=200, key=f"text_{i}")
+            
+            # Etiketler
+            if 'tags' in doc and doc['tags']:
+                st.markdown(f"**Etiketler:** {', '.join(doc['tags'])}")
+                
+            st.markdown("---")
+    
+    # Sonuç bulunamazsa bilgi ver
+    if len(I[0]) == 0 or all(idx == -1 for idx in I[0]):
+        st.info("Bu sorgu için eşleşen sonuç bulunamadı.")
+else:
+    st.info("Bilgi almak için yukarıya bir sorgu girin.")
 
