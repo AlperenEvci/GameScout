@@ -62,12 +62,14 @@ DEFAULT_CHARACTER_CLASS = "Fighter"
 # --- LLM API Settings ---
 # Set to "none" to disable, or choose "openai", "gemini", "deepseek", "openrouter" or "azure"
 LLM_PROVIDER = "openrouter"  # Set to "openrouter" for accessing DeepSeek
-# Get your OpenRouter API key from environment
+
+# LLM API değişkenleri
+# api_client.py tarafından kullanılan değişken adları
+LLM_API_TYPE = LLM_PROVIDER  # LLM_PROVIDER'ı LLM_API_TYPE olarak kullan
 LLM_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
-# Set LLM API endpoint - OpenRouter endpoint
+LLM_API_MODEL = LLM_MODEL = "deepseek/deepseek-r1:free"  # DeepSeek model via OpenRouter
 LLM_API_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
-# Model to use via OpenRouter
-LLM_MODEL = "deepseek/deepseek-r1:free"  # DeepSeek model via OpenRouter
+
 # Temperature (randomness) - lower for more consistent responses
 LLM_TEMPERATURE = 0.7
 # Maximum tokens in response

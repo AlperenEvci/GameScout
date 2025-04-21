@@ -1,466 +1,343 @@
-# gamescout/llm/api_client.py
+#!/usr/bin/env python3
+# llm/api_client.py - LLM API istemcisi
 
-import requests
-import json
 import os
-from config import settings
+import json
+import requests
+import logging
+from pathlib import Path
 from utils.helpers import get_logger
 
-# LangChain imports
-try:
-    from langchain_community.llms import DeepSeek
-    from langchain_core.prompts import PromptTemplate
-    from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
-    from langchain_core.callbacks import CallbackManager, StdOutCallbackHandler
-    LANGCHAIN_AVAILABLE = True
-except ImportError:
-    LANGCHAIN_AVAILABLE = False
+# Proje kök dizinini import için ekleyin
+import sys
+sys.path.append(str(Path(__file__).parent.parent))
+
+from config import settings
 
 logger = get_logger(__name__)
 
 class LLMAPIClient:
-    """Client for interacting with LLM APIs (OpenAI, Gemini, DeepSeek, etc.)"""
+    """
+    Çeşitli LLM API'lerini (OpenAI, DeepSeek, Gemini vb.) kullanmak için istemci.
+    LLM bazlı önerilerin üretilmesi için kullanılır.
+    """
     
     def __init__(self):
-        """Initialize the LLM API client with settings from config."""
+        """API seçeneklerini yapılandırma dosyasından yükle."""
+        self.api_type = settings.LLM_API_TYPE
         self.api_key = settings.LLM_API_KEY
+        self.api_model = settings.LLM_API_MODEL
         self.api_endpoint = settings.LLM_API_ENDPOINT
-        self.model = settings.LLM_MODEL
-        self.provider = settings.LLM_PROVIDER
-        self.max_retries = 2
-        self.timeout = 10  # seconds
-        
-        if not self.api_key and self.provider != "none":
-            logger.warning("LLM API key not configured. Dynamic recommendations will be disabled.")
-            
-        # Initialize LangChain components if available
-        self.search_wrapper = None
-        if LANGCHAIN_AVAILABLE and settings.ENABLE_WEB_SEARCH:
-            try:
-                self.search_wrapper = DuckDuckGoSearchAPIWrapper(
-                    max_results=settings.WEB_SEARCH_MAX_RESULTS
-                )
-                logger.info("Web search initialized using DuckDuckGo")
-            except Exception as e:
-                logger.error(f"Error initializing web search: {e}")
-    
+        self.max_tokens = settings.LLM_MAX_TOKENS
+        self.temperature = settings.LLM_TEMPERATURE
+        self.language = "tr"  # Varsayılan dil olarak Türkçe
+
     def is_available(self):
-        """Check if the LLM API is configured and available."""
-        return self.api_key and self.provider.lower() != "none"
+        """API'nin kullanıma hazır olup olmadığını kontrol et."""
+        # En azından API türü ve anahtarı olmalı
+        return bool(self.api_type and self.api_key)
     
-    def get_recommendation(self, game_state, prompt_type="general"):
-        """
-        Get recommendations from the LLM based on the current game state.
+    def get_base_prompt(self, game_state, category="general"):
+        """Oyun durumuna göre temel prompt oluşturur."""
+        # Basit durum formatı
+        state_desc = f"Bölge: {game_state.current_region if game_state.current_region else 'Bilinmiyor'}, "
+        state_desc += f"Karakter Sınıfı: {game_state.character_class}, "
         
-        Args:
-            game_state: Current GameState object with location, class, etc.
-            prompt_type: Type of prompt to use ("general", "combat", "exploration", etc.)
+        if game_state.nearby_points_of_interest:
+            poi_names = [poi['name'] for poi in game_state.nearby_points_of_interest[:3]]
+            state_desc += f"Yakındaki Önemli Yerler: {', '.join(poi_names)}, "
             
-        Returns:
-            List of recommendation strings, or empty list if API is unavailable/fails
+        if game_state.detected_keywords:
+            state_desc += f"Tespit Edilen Anahtar Kelimeler: {', '.join(game_state.detected_keywords)}, "
+        
+        # Oyuncu için ipuçları ve öneriler oluşturacak prompt
+        prompt = f"""
+        Sen bir Baldur's Gate 3 oyun asistanısın. Oyuncunun oyun deneyimini artırmak için 
+        yararlı ipuçları ve öneriler sunuyorsun. Aşağıdaki oyun durum bilgilerine dayanarak
+        oyuncuya yardımcı olacak {self.language} dilinde 3 yararlı öneri veya ipucu oluştur.
+        Yanıtların kısa, öz ve doğrudan yararlı olmalı.
+        
+        Mevcut oyun durumu:
+        {state_desc}
+        
+        İstenilen öneri kategorisi: {category}
+        
+        Öneriler veya ipuçları (her biri en fazla 150 karakter):
         """
-        if not self.is_available():
-            logger.info("LLM API not configured. Returning empty recommendations.")
-            return []
-            
-        # Build a prompt based on game state and prompt type
-        prompt = self._build_prompt(game_state, prompt_type)
         
-        # Perform web search if enabled
-        web_search_results = []
-        if self.search_wrapper and settings.ENABLE_WEB_SEARCH:
-            search_query = f"Baldur's Gate 3 {game_state.current_region or ''} {game_state.character_class or ''} guide tips"
-            try:
-                logger.info(f"Performing web search for: {search_query}")
-                web_search_results = self.search_wrapper.run(search_query)
-                logger.info(f"Web search returned {len(web_search_results.split('Results:'))} results")
-                
-                # Add web search results to prompt
-                prompt += "\n\nİlgili Web Arama Sonuçları:\n" + web_search_results
-            except Exception as e:
-                logger.error(f"Error performing web search: {e}")
-        
-        # Call appropriate provider method based on settings
-        if self.provider.lower() == "openai":
-            return self._call_openai_api(prompt)
-        elif self.provider.lower() == "gemini":
-            return self._call_gemini_api(prompt)
-        elif self.provider.lower() == "deepseek":
-            return self._call_deepseek_api(prompt)
-        elif self.provider.lower() == "openrouter":
-            return self._call_openrouter_api(prompt)
-        elif self.provider.lower() == "azure":
-            return self._call_azure_openai_api(prompt)
-        else:
-            logger.error(f"Unsupported LLM provider: {self.provider}")
-            return []
-    
-    def _build_prompt(self, game_state, prompt_type):
-        """Build a prompt for the LLM based on the game state."""
-        base_prompt = settings.LLM_PROMPT_TEMPLATE
-        
-        # Replace placeholder variables in template
-        prompt = base_prompt.replace("{region}", game_state.current_region or "Unknown")
-        prompt = prompt.replace("{character_class}", game_state.character_class or "Unknown")
-        
-        # Add detected keywords
-        keywords = ", ".join(game_state.detected_keywords) if game_state.detected_keywords else "None"
-        prompt = prompt.replace("{keywords}", keywords)
-        
-        # Add nearby points of interest
-        pois = []
-        for poi in game_state.nearby_points_of_interest:
-            pois.append(f"{poi['name']}: {poi.get('description', '')}")
-        poi_text = "\n".join(pois) if pois else "None"
-        prompt = prompt.replace("{points_of_interest}", poi_text)
-        
-        # Add nearby quests
-        quests = []
-        for quest in game_state.region_quests:
-            quests.append(f"{quest['name']}: {quest.get('description', '')}")
-        quest_text = "\n".join(quests) if quests else "None"
-        prompt = prompt.replace("{quests}", quest_text)
-        
-        # Add the prompt type-specific instructions
-        if prompt_type == "combat":
-            prompt += "\nBu savaş durumu için taktiksel öneriler ver."
-        elif prompt_type == "exploration":
-            prompt += "\nBu bölgedeki değerli eşyalar ve keşif önerileri ver."
-        elif prompt_type == "social":
-            prompt += "\nNPC'lerle etkileşim için öneriler ver."
-        
-        logger.debug(f"Built LLM prompt: {prompt[:100]}...")
         return prompt
     
-    def _call_litellm_router(self, prompt):
-        """Call the LiteLLM router API with the given prompt to access DeepSeek."""
+    def get_rag_prompt(self, user_query, contexts):
+        """RAG için prompt oluştur."""
+        prompt = f"""
+        Kullanıcının Sorusu: {user_query}
+        
+        Aşağıdaki bağlamları kullanarak kullanıcının sorusuna {self.language} dilinde yanıt ver. 
+        Eğer verilen bilgiler İngilizce ise, bunları doğru bir şekilde {self.language} diline çevirerek cevap ver.
+        Cevabın net, kısa ve doğru olsun. Sadece verilen bağlamlara dayanarak cevap ver.
+        Eğer bağlamlarda cevap yoksa, "Bu konu hakkında yeterli bilgim yok" şeklinde yanıt ver.
+        Sen bir Baldur's Gate 3 oyunu asistanısın ve görevin oyuncuya yardımcı olmaktır.
+        
+        Bağlamlar:
+        """
+        
+        for i, context in enumerate(contexts, 1):
+            prompt += f"\n--- Bağlam {i} ---\n"
+            prompt += f"Başlık: {context.get('title', 'Başlık yok')}\n"
+            content = context.get('content', 'İçerik yok')
+            # İçeriği LLM token limitlerini aşmamak için kısalt
+            if len(content) > 1000:
+                content = content[:1000] + "..."
+            prompt += f"İçerik: {content}\n"
+        
+        return prompt
+    
+    def set_language(self, language_code):
+        """Yanıt dilini ayarla (tr: Türkçe, en: İngilizce)."""
+        self.language = language_code
+        logger.info(f"LLM yanıt dili şu şekilde ayarlandı: {language_code}")
+    
+    def call_openai(self, prompt):
+        """OpenAI API'sini çağır."""
+        import openai
+        
+        openai.api_key = self.api_key
+        
         try:
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}"
-            }
-            
-            # LiteLLM router follows OpenAI API format
-            data = {
-                "model": self.model,
-                "messages": [
-                    {"role": "system", "content": settings.LLM_SYSTEM_PROMPT},
+            completion = openai.ChatCompletion.create(
+                model=self.api_model or "gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Sen bir Baldur's Gate 3 oyun asistanısın. Türkçe cevaplar ver."},
                     {"role": "user", "content": prompt}
                 ],
-                "temperature": settings.LLM_TEMPERATURE,
-                "max_tokens": settings.LLM_MAX_TOKENS
-            }
-            
-            logger.info(f"Sending request to LiteLLM router for DeepSeek model: {self.model}")
-            
-            response = requests.post(
-                self.api_endpoint,
-                headers=headers,
-                data=json.dumps(data),
-                timeout=self.timeout
+                max_tokens=self.max_tokens or 300,
+                temperature=self.temperature or 0.7
             )
             
-            if response.status_code == 200:
-                result = response.json()
-                if "choices" in result and len(result["choices"]) > 0:
-                    content = result["choices"][0]["message"]["content"]
-                    recommendations = self._parse_recommendations(content)
-                    logger.info(f"Received {len(recommendations)} recommendations from DeepSeek via LiteLLM router")
-                    return recommendations
-                else:
-                    logger.error(f"Unexpected response format from LiteLLM router: {result}")
-            else:
-                logger.error(f"LiteLLM router API error: {response.status_code}, {response.text[:500]}")
-                
-        except Exception as e:
-            logger.error(f"Error calling LiteLLM router API: {e}", exc_info=True)
-        
-        return []  # Return empty list on error
-    
-    def _call_deepseek_api(self, prompt):
-        """Call the DeepSeek API with the given prompt."""
-        try:
-            if LANGCHAIN_AVAILABLE:
-                # Use LangChain for DeepSeek
-                logger.info("Using LangChain for DeepSeek API call")
-                callback_manager = CallbackManager([StdOutCallbackHandler()])
-                
-                # Initialize the DeepSeek LLM
-                llm = DeepSeek(
-                    deepseek_api_key=self.api_key,
-                    model_name=self.model,
-                    temperature=settings.LLM_TEMPERATURE,
-                    max_tokens=settings.LLM_MAX_TOKENS,
-                    callback_manager=callback_manager
-                )
-                
-                # Create template and format prompt
-                template = "{system}\n\n{user_query}"
-                prompt_template = PromptTemplate(
-                    input_variables=["system", "user_query"],
-                    template=template
-                )
-                
-                formatted_prompt = prompt_template.format(
-                    system=settings.LLM_SYSTEM_PROMPT,
-                    user_query=prompt
-                )
-                
-                # Generate response
-                response = llm.invoke(formatted_prompt)
-                
-                # Parse the response into recommendations
-                recommendations = self._parse_recommendations(response)
-                logger.info(f"Generated {len(recommendations)} recommendations via LangChain & DeepSeek")
-                return recommendations
-                
-            else:
-                # Fallback to direct API call
-                logger.info("LangChain not available, falling back to direct API call")
-                headers = {
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {self.api_key}"
-                }
-                
-                data = {
-                    "model": self.model,
-                    "messages": [
-                        {"role": "system", "content": settings.LLM_SYSTEM_PROMPT},
-                        {"role": "user", "content": prompt}
-                    ],
-                    "temperature": settings.LLM_TEMPERATURE,
-                    "max_tokens": settings.LLM_MAX_TOKENS
-                }
-                
-                response = requests.post(
-                    self.api_endpoint,
-                    headers=headers,
-                    data=json.dumps(data),
-                    timeout=self.timeout
-                )
-                
-                if response.status_code == 200:
-                    result = response.json()
-                    if "choices" in result and len(result["choices"]) > 0:
-                        content = result["choices"][0]["message"]["content"]
-                        recommendations = self._parse_recommendations(content)
-                        logger.info(f"Received {len(recommendations)} recommendations from DeepSeek API")
-                        return recommendations
-                    else:
-                        logger.error(f"Unexpected response format from DeepSeek API: {result}")
-                else:
-                    logger.error(f"DeepSeek API error: {response.status_code}, {response.text[:500]}")
-                    
-        except Exception as e:
-            logger.error(f"Error calling DeepSeek API: {e}", exc_info=True)
-        
-        return []  # Return empty list on error
-    
-    def _call_openai_api(self, prompt):
-        """Call the OpenAI API with the given prompt."""
-        try:
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}"
-            }
+            return completion.choices[0].message.content.strip()
             
-            data = {
-                "model": self.model,
-                "messages": [
-                    {"role": "system", "content": settings.LLM_SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt}
-                ],
-                "temperature": settings.LLM_TEMPERATURE,
-                "max_tokens": settings.LLM_MAX_TOKENS
-            }
-            
+        except Exception as e:
+            logger.error(f"OpenAI API çağrısı başarısız: {str(e)}")
+            return None
+    
+    def call_deepseek(self, prompt):
+        """DeepSeek API'sini çağır."""
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        data = {
+            "model": self.api_model or "deepseek-chat",
+            "messages": [
+                {"role": "system", "content": "Sen bir Baldur's Gate 3 oyun asistanısın. Türkçe cevaplar ver."},
+                {"role": "user", "content": prompt}
+            ],
+            "max_tokens": self.max_tokens or 300,
+            "temperature": self.temperature or 0.7
+        }
+        
+        try:
             response = requests.post(
-                self.api_endpoint,
+                self.api_endpoint or "https://api.deepseek.com/v1/chat/completions",
                 headers=headers,
-                data=json.dumps(data),
-                timeout=self.timeout
+                json=data,
+                timeout=30
+            )
+            response.raise_for_status()
+            
+            response_data = response.json()
+            return response_data["choices"][0]["message"].content.strip()
+            
+        except Exception as e:
+            logger.error(f"DeepSeek API çağrısı başarısız: {str(e)}")
+            return None
+            
+    def call_gemini(self, prompt):
+        """Google Gemini API'sini çağır."""
+        try:
+            import google.generativeai as genai
+            
+            genai.configure(api_key=self.api_key)
+            model = genai.GenerativeModel(
+                self.api_model or "gemini-pro", 
+                generation_config={"temperature": self.temperature or 0.7, "max_output_tokens": self.max_tokens or 300}
             )
             
-            if response.status_code == 200:
-                result = response.json()
-                if "choices" in result and len(result["choices"]) > 0:
-                    content = result["choices"][0]["message"]["content"]
-                    # Parse the content into individual recommendations
-                    recommendations = self._parse_recommendations(content)
-                    logger.info(f"Received {len(recommendations)} recommendations from LLM")
-                    return recommendations
-                else:
-                    logger.error("Unexpected response format from OpenAI API")
-            else:
-                logger.error(f"OpenAI API error: {response.status_code}, {response.text}")
-        
-        except Exception as e:
-            logger.error(f"Error calling OpenAI API: {e}", exc_info=True)
-        
-        return []  # Return empty list on error
-    
-    def _call_gemini_api(self, prompt):
-        """Call the Google Gemini API with the given prompt."""
-        try:
-            headers = {
-                "Content-Type": "application/json"
-            }
+            system_instruction = "Sen bir Baldur's Gate 3 oyun asistanısın. Türkçe cevaplar ver."
             
-            # Gemini API format for newer models
-            data = {
-                "contents": [
-                    {
-                        "parts": [
-                            {"text": settings.LLM_SYSTEM_PROMPT + "\n\n" + prompt}
-                        ]
-                    }
-                ],
-                "generationConfig": {
-                    "temperature": settings.LLM_TEMPERATURE,
-                    "maxOutputTokens": settings.LLM_MAX_TOKENS,
-                    "topP": 0.95,
-                    "topK": 40
-                }
-            }
-            
-            # Add API key as URL parameter
-            url = f"{self.api_endpoint}?key={self.api_key}"
-            
-            # Daha ayrıntılı hata ayıklama bilgileri
-            logger.info(f"Sending request to Gemini API: {url[:60]}...")
-            logger.debug(f"Request data: {json.dumps(data)[:200]}...")
-            
-            response = requests.post(
-                url,
-                headers=headers,
-                data=json.dumps(data),
-                timeout=self.timeout
+            response = model.generate_content(
+                [system_instruction, prompt]
             )
             
-            logger.info(f"Gemini API response status: {response.status_code}")
+            return response.text.strip()
             
-            if response.status_code == 200:
-                result = response.json()
-                logger.debug(f"Response JSON keys: {list(result.keys())}")
-                
-                if "candidates" in result and len(result["candidates"]) > 0:
-                    content = result["candidates"][0]["content"]["parts"][0]["text"]
-                    recommendations = self._parse_recommendations(content)
-                    logger.info(f"Received {len(recommendations)} recommendations from Gemini")
-                    return recommendations
-                else:
-                    logger.error(f"Unexpected response format from Gemini API: {result}")
-                    if "error" in result:
-                        logger.error(f"Gemini API error details: {result['error']}")
-            else:
-                # Tam hata metni - güvenli bir uzunlukta göster
-                error_text = response.text[:500] + "..." if len(response.text) > 500 else response.text
-                logger.error(f"Gemini API error: {response.status_code}, {error_text}")
-        
         except Exception as e:
-            logger.error(f"Error calling Gemini API: {e}", exc_info=True)
-        
-        return []  # Return empty list on error
+            logger.error(f"Gemini API çağrısı başarısız: {str(e)}")
+            return None
     
-    def _call_openrouter_api(self, prompt):
-        """Call the OpenRouter API to access DeepSeek models."""
+    def process_response_for_turkish(self, response):
+        """LLM yanıtındaki olası bozuk Türkçe karakterleri düzelt."""
+        if not response or self.language != "tr":
+            return response
+            
+        # Türkçe karakterlerin düzgün görüntülenmesi için kontroller
+        tr_replacements = {
+            'Ä±': 'ı',
+            'Ã¼': 'ü',
+            'Ã¶': 'ö',
+            'ÅŸ': 'ş', 
+            'Ã§': 'ç',
+            'Äž': 'ğ',
+            'Ä°': 'İ',
+            'Ãœ': 'Ü',
+            'Ã–': 'Ö',
+            'Åž': 'Ş',
+            'Ã‡': 'Ç',
+            'Äž': 'Ğ'
+        }
+        
+        for wrong, correct in tr_replacements.items():
+            response = response.replace(wrong, correct)
+            
+        return response
+    
+    def get_recommendation(self, game_state, category="general"):
+        """
+        Oyun durumuna dayalı olarak LLM'den önerileri alır.
+        
+        Args:
+            game_state: Oyun durum nesnesi
+            category: Öneri kategorisi (general, combat, exploration, vb.)
+        
+        Returns:
+            list: Yanıt listesi veya boş liste (hata durumunda)
+        """
+        if not self.is_available():
+            logger.warning("LLM API yapılandırılmamış, öneriler devre dışı")
+            return []
+            
         try:
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}",
-                "HTTP-Referer": "https://gamescout.app",  # Replace with your actual domain
-                "X-Title": "GameScout BG3 Assistant"
-            }
+            # Prompt oluştur
+            prompt = self.get_base_prompt(game_state, category)
             
-            # OpenRouter API follows OpenAI format
-            data = {
-                "model": self.model,
-                "messages": [
-                    {"role": "system", "content": settings.LLM_SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt}
-                ],
-                "temperature": settings.LLM_TEMPERATURE,
-                "max_tokens": settings.LLM_MAX_TOKENS
-            }
+            # API türüne göre çağrı yap
+            response = None
             
-            logger.info(f"Sending request to OpenRouter for model: {self.model}")
-            
-            response = requests.post(
-                self.api_endpoint,
-                headers=headers,
-                data=json.dumps(data),
-                timeout=self.timeout
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                if "choices" in result and len(result["choices"]) > 0:
-                    content = result["choices"][0]["message"]["content"]
-                    recommendations = self._parse_recommendations(content)
-                    logger.info(f"Received {len(recommendations)} recommendations from DeepSeek via OpenRouter")
-                    return recommendations
-                else:
-                    logger.error(f"Unexpected response format from OpenRouter API: {result}")
+            if self.api_type.lower() == "openai":
+                response = self.call_openai(prompt)
+            elif self.api_type.lower() == "deepseek":
+                response = self.call_deepseek(prompt)
+            elif self.api_type.lower() == "gemini":
+                response = self.call_gemini(prompt)
             else:
-                logger.error(f"OpenRouter API error: {response.status_code}, {response.text[:500]}")
+                logger.error(f"Desteklenmeyen API türü: {self.api_type}")
+                return []
                 
-        except Exception as e:
-            logger.error(f"Error calling OpenRouter API: {e}", exc_info=True)
-        
-        return []  # Return empty list on error
-    
-    def _call_azure_openai_api(self, prompt):
-        """Call the Azure OpenAI API with the given prompt."""
-        # Implementation for Azure OpenAI API (similar to OpenAI but with Azure-specific endpoint)
-        logger.warning("Azure OpenAI implementation is a placeholder. Using default OpenAI implementation.")
-        return self._call_openai_api(prompt)
-    
-    def _parse_recommendations(self, content):
-        """Parse the LLM response into individual recommendation strings."""
-        recommendations = []
-        
-        # Try to split by common separators
-        lines = content.split("\n")
-        for line in lines:
-            line = line.strip()
-            # Skip empty lines and headers
-            if not line or line.startswith("#") or line.lower().startswith("öneriler"):
-                continue
+            if not response:
+                logger.warning("LLM API'den yanıt alınamadı")
+                return []
                 
-            # Remove list markers like "1.", "-", "*", etc.
-            cleaned_line = line
-            if line.startswith(("- ", "* ", "> ")):
-                cleaned_line = line[2:].strip()
-            elif len(line) > 2 and line[0].isdigit() and line[1] == ".":
-                cleaned_line = line[2:].strip()
+            # Türkçe karakter düzeltmesi
+            response = self.process_response_for_turkish(response)
                 
-            if cleaned_line and len(cleaned_line) > 5:  # Require some minimum length
-                recommendations.append(cleaned_line)
-        
-        # If we couldn't parse properly, just return the whole text as one recommendation
-        if not recommendations and content.strip():
-            recommendations.append(content.strip())
+            # Yanıtı satırlara ayır ve filtrele
+            lines = [line.strip() for line in response.split("\n") if line.strip()]
             
-        return recommendations[:5]  # Limit to max 5 recommendations
+            # İpucu/Öneri formatı kontrolü
+            recommendations = []
+            for line in lines:
+                # Numaralandırma, tire veya yıldızla başlayan satırları al
+                if (line.startswith(("1.", "2.", "3.", "-", "*", "•")) or 
+                    any(line.lower().startswith(kw) for kw in ["ipucu:", "öneri:", "tavsiye:"])):
+                    # Öneri başlangıcı olabilecek öğeleri temizle
+                    cleaned = line
+                    for prefix in ["1.", "2.", "3.", "-", "*", "•", "ipucu:", "öneri:", "tavsiye:"]:
+                        if cleaned.lower().startswith(prefix):
+                            cleaned = cleaned[len(prefix):].strip()
+                            break
+                    recommendations.append(cleaned)
+            
+            # Eğer düzgün ipuçları bulunamadıysa, tüm yanıtı kullan
+            if not recommendations and lines:
+                recommendations = [r for r in lines if len(r) > 10 and len(r) < 200]
+                
+            # En fazla 3 öneri döndür
+            return recommendations[:3]
+            
+        except Exception as e:
+            logger.error(f"Öneri alınırken hata: {str(e)}")
+            return []
+    
+    def get_rag_response(self, user_query, contexts):
+        """
+        Kullanıcı sorgusuna ve bağlamlara dayanarak LLM'den RAG yanıtı alır.
+        
+        Args:
+            user_query: Kullanıcı sorgusur
+            contexts: Bilgi tabanından alınan ilgili bağlamlar
+            
+        Returns:
+            str: LLM yanıtı veya hata mesajı
+        """
+        if not self.is_available():
+            return "LLM API yapılandırılmamış. Ayarlarınızı kontrol edin."
+            
+        try:
+            # RAG promptu oluştur
+            prompt = self.get_rag_prompt(user_query, contexts)
+            
+            # API türüne göre çağrı yap
+            response = None
+            
+            if self.api_type.lower() == "openai":
+                response = self.call_openai(prompt)
+            elif self.api_type.lower() == "deepseek":
+                response = self.call_deepseek(prompt)
+            elif self.api_type.lower() == "gemini":
+                response = self.call_gemini(prompt)
+            else:
+                return f"Desteklenmeyen API türü: {self.api_type}"
+                
+            if not response:
+                return "LLM'den yanıt alınamadı."
+                
+            # Türkçe karakter düzeltmesi
+            response = self.process_response_for_turkish(response)
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"RAG yanıtı alınırken hata: {str(e)}")
+            return f"Hata oluştu: {str(e)}"
 
 
-# Example usage if run directly
+# Test - Örnek kullanım
 if __name__ == "__main__":
     from agent.decision_engine import GameState
     
-    # Create test game state
-    test_state = GameState()
-    test_state.current_region = "Emerald Grove"
-    test_state.character_class = "Wizard"
-    test_state.detected_keywords = ["chest", "magic", "trap"]
+    # Test için basit bir GameState nesnesi oluştur
+    gs = GameState()
+    gs.current_region = "Emerald Grove"
+    gs.character_class = "Wizard"
+    gs.detected_keywords = ["görev", "savaş", "büyü"]
     
-    # Create client and get recommendations
+    # LLM API istemcisini başlat
     client = LLMAPIClient()
+    
+    # Dil tercihi
+    client.set_language("tr")  # Türkçe yanıtlar için
+    
+    # API yapılandırılmışsa öneriler al
     if client.is_available():
-        print("Testing LLM API...")
-        recommendations = client.get_recommendation(test_state)
-        print("\nReceived Recommendations:")
+        print("\nGenel öneriler:")
+        recommendations = client.get_recommendation(gs, "general")
         for i, rec in enumerate(recommendations, 1):
             print(f"{i}. {rec}")
+            
+        print("\nSavaş önerileri:")
+        combat_recommendations = client.get_recommendation(gs, "combat")
+        for i, rec in enumerate(combat_recommendations, 1):
+            print(f"{i}. {rec}")
     else:
-        print("LLM API not configured. Set LLM_API_KEY and LLM_PROVIDER in settings.py")
+        print("LLM API yapılandırılmamış. API türünü ve anahtarınızı ayarlayın.")

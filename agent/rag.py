@@ -78,7 +78,8 @@ class RAGAssistant:
         prompt = f"""
         Kullanıcının Sorusu: {user_query}
         
-        Aşağıdaki bağlamları kullanarak kullanıcının sorusuna yanıt ver. 
+        Aşağıdaki bağlamları kullanarak kullanıcının sorusuna Türkçe olarak yanıt ver. 
+        Eğer verilen bilgiler İngilizce ise, bunları doğru bir şekilde Türkçeye çevirerek cevap ver.
         Cevabın net, kısa ve doğru olsun. Sadece verilen bağlamlara dayanarak cevap ver.
         Eğer bağlamlarda cevap yoksa, "Bu konu hakkında yeterli bilgim yok" şeklinde yanıt ver.
         Sen bir Baldur's Gate 3 oyunu asistanısın ve görevin oyuncuya yardımcı olmaktır.
@@ -96,6 +97,29 @@ class RAGAssistant:
             prompt += f"İçerik: {content}\n"
         
         return prompt
+    
+    def process_response_for_turkish(self, response):
+        """LLM yanıtını Türkçe karakterleri koruyacak şekilde işle."""
+        # Türkçe karakterlerin düzgün görüntülenmesi için kontroller
+        tr_replacements = {
+            'Ä±': 'ı',
+            'Ã¼': 'ü',
+            'Ã¶': 'ö',
+            'ÅŸ': 'ş', 
+            'Ã§': 'ç',
+            'Äž': 'ğ',
+            'Ä°': 'İ',
+            'Ãœ': 'Ü',
+            'Ã–': 'Ö',
+            'Åž': 'Ş',
+            'Ã‡': 'Ç',
+            'Äž': 'Ğ'
+        }
+        
+        for wrong, correct in tr_replacements.items():
+            response = response.replace(wrong, correct)
+            
+        return response
     
     def ask_llm(self, prompt):
         """LLM'e prompt gönder ve yanıt al."""
@@ -115,7 +139,10 @@ class RAGAssistant:
             if not recommendations:
                 return "LLM'den yanıt alınamadı."
                 
-            return "\n".join(recommendations)
+            response = "\n".join(recommendations)
+            # Türkçe karakter düzeltmesi yap
+            response = self.process_response_for_turkish(response)
+            return response
             
         except Exception as e:
             logger.error(f"LLM yanıtı alınırken hata: {str(e)}")
