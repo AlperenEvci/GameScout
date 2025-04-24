@@ -1,39 +1,50 @@
 # gamescout/capture/screen_capture.py
+"""
+Screen Capture Module for GameScout
+
+This module is responsible for capturing screenshots of the game window or screen
+using PyAutoGUI and PyGetWindow libraries. It can target specific windows by title
+or capture predefined screen regions.
+"""
 
 import pyautogui
 import pygetwindow as gw
 from PIL import Image
+from typing import Tuple, Optional
 from config import settings
 from utils.helpers import get_logger
 
+# Initialize logger for this module
 logger = get_logger(__name__)
 
-def get_window_region(window_title):
+# Type alias for screen regions
+Region = Tuple[int, int, int, int]  # left, top, width, height
+
+def get_window_region(window_title: str) -> Optional[Region]:
     """
-    Get the region (left, top, width, height) of a window by its exact title.
+    Get the region coordinates of a window by its exact title.
     
     Args:
         window_title: The exact title of the window to capture
         
     Returns:
-        A tuple of (left, top, width, height) or None if the window is not found
+        A tuple of (left, top, width, height) or None if window not found
     """
     try:
         # Get all windows and find the one with the exact title
         all_windows = gw.getAllWindows()
         
-        # Find the window with the exact title match
-        matching_window = None
-        for window in all_windows:
-            if window.title == window_title:
-                matching_window = window
-                break
+        # Find window with exact title match
+        matching_window = next(
+            (window for window in all_windows if window.title == window_title), 
+            None
+        )
                 
         if not matching_window:
             logger.warning(f"No window found with exact title '{window_title}'")
             return None
             
-        # Get the window position and size
+        # Extract window position and size
         left, top = matching_window.left, matching_window.top
         width, height = matching_window.width, matching_window.height
         
@@ -44,36 +55,69 @@ def get_window_region(window_title):
         logger.error(f"Error getting window region: {e}", exc_info=True)
         return None
 
-def take_screenshot() -> Image.Image | None:
+def take_screenshot() -> Optional[Image.Image]:
     """
-    Takes a screenshot of the specified region or the primary monitor.
+    Takes a screenshot of the specified window or region.
+    
+    First attempts to capture a specific window if CAPTURE_WINDOW_TITLE is set.
+    Falls back to the configured region or entire screen if window capture fails.
 
     Returns:
-        A PIL Image object of the screenshot, or None if an error occurs.
+        A PIL Image object containing the screenshot, or None if capture fails
     """
     try:
-        # Check if a specific window should be captured
+        # If window capture is configured, try to capture the specific window
         if settings.CAPTURE_WINDOW_TITLE:
             logger.info(f"Attempting to capture window: '{settings.CAPTURE_WINDOW_TITLE}'")
-            # Get the region of the specified window
             region = get_window_region(settings.CAPTURE_WINDOW_TITLE)
             
-            # If the window was found, use its region for the screenshot
             if region:
                 screenshot = pyautogui.screenshot(region=region)
                 logger.debug(f"Screenshot taken of window '{settings.CAPTURE_WINDOW_TITLE}'")
                 return screenshot
             else:
-                # Fall back to the configured region if the window isn't found
-                logger.warning(f"Window '{settings.CAPTURE_WINDOW_TITLE}' not found. Using configured region instead.")
+                logger.warning(
+                    f"Window '{settings.CAPTURE_WINDOW_TITLE}' not found. "
+                    "Falling back to configured region or full screen capture."
+                )
         
-        # Use the configured region (or entire screen if None)
+        # Take screenshot of configured region (or entire screen if None)
         screenshot = pyautogui.screenshot(region=settings.CAPTURE_REGION)
-        logger.debug("Screenshot taken successfully.")
+        
+        if settings.CAPTURE_REGION:
+            logger.debug(f"Screenshot taken of configured region {settings.CAPTURE_REGION}")
+        else:
+            logger.debug("Screenshot taken of full screen")
+            
         return screenshot
+    
+    except pyautogui.PyAutoGUIException as e:
+        logger.error(f"PyAutoGUI error during screenshot: {e}")
+        return None
     except Exception as e:
         logger.error(f"Error taking screenshot: {e}", exc_info=True)
         return None
+
+def save_debug_screenshot(filename: str = "debug_screenshot.png") -> bool:
+    """
+    Takes a screenshot and saves it to disk for debugging purposes.
+    
+    Args:
+        filename: Name of the file to save the screenshot as
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        screenshot = take_screenshot()
+        if screenshot:
+            screenshot.save(filename)
+            logger.info(f"Debug screenshot saved to '{filename}'")
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Failed to save debug screenshot: {e}")
+        return False
 
 if __name__ == '__main__':
     # Example usage: Take a screenshot and save it

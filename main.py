@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 # gamescout/main.py
+"""
+GameScout: An AI assistant for gaming that uses screen capture, OCR, and RAG techniques
+to provide contextual information and assistance to players.
+
+This is the main entry point for the application, handling initialization,
+dependency checking, and the core processing loop.
+"""
 
 import time
 import queue
@@ -10,170 +17,199 @@ from config import settings
 from utils.helpers import get_logger
 from capture import screen_capture, ocr_processor
 from agent import decision_engine
-from agent.rag import RAGAssistant  # Yeni RAGAssistant sınıfını içe aktarıyoruz
+from agent.rag import RAGAssistant
 from ui import hud_display
 from data.cache_all_regions import cache_all_regions
-# from data import forum_scraper # İhtiyaç olduğunda ana döngüde içe aktarın
+# Import forum_scraper only when needed to improve startup time
+# from data import forum_scraper
 
+# Initialize logger
 logger = get_logger(settings.APP_NAME)
 
-# Global RAG Asistanı
+# Global RAG Assistant instance
 rag_assistant = None
 
 def check_dependencies():
-    """Tüm gerekli bağımlılıkların mevcut olup olmadığını kontrol et."""
-    # Tesseract'ın yapılandırılıp yapılandırılmadığını kontrol et
+    """
+    Verifies all required dependencies are properly configured.
+    
+    Checks for:
+    - Tesseract OCR installation
+    - Language data availability
+    - Map data cache completeness
+    
+    Returns:
+        bool: True if all dependencies are satisfied, False otherwise
+    """
+    # Check if Tesseract is properly configured
     if not settings.TESSERACT_CMD:
-        logger.error("Tesseract OCR bulunamadı! GameScout, metin tanıma için Tesseract OCR gerektirir.")
-        print("\n==== Tesseract OCR Bulunamadı ====")
-        print("GameScout, metin tanıma için Tesseract OCR gerektirir. Lütfen:")
-        print("1. Tesseract OCR'yi buradan indirin: https://github.com/UB-Mannheim/tesseract/wiki")
-        print("2. Kurun (önerilen yol: C:\\Program Files\\Tesseract-OCR\\)")
-        print("3. GameScout'u yeniden başlatın")
-        print("\nTesseract zaten özel bir konuma kuruluysa, config/settings.py içindeki TESSERACT_CMD'yi güncelleyin")
+        logger.error("Tesseract OCR not found! GameScout requires Tesseract OCR for text recognition.")
+        print("\n==== Tesseract OCR Not Found ====")
+        print("GameScout requires Tesseract OCR for text recognition. Please:")
+        print("1. Download Tesseract OCR from: https://github.com/UB-Mannheim/tesseract/wiki")
+        print("2. Install it (recommended path: C:\\Program Files\\Tesseract-OCR\\)")
+        print("3. Restart GameScout")
+        print("\nIf Tesseract is already installed in a custom location, update TESSERACT_CMD in config/settings.py")
         print("=================================\n")
         return False
         
-    # Türkçe dil verilerinin mevcut olup olmadığını kontrol et
+    # Check if Turkish language data is available when configured
     if settings.OCR_LANGUAGE == 'tur':
         try:
             import pytesseract
             import tempfile
             from PIL import Image, ImageDraw
             
-            # Türkçe metinli geçici bir görüntü oluştur
+            # Create a temporary image with Turkish text
             img = Image.new('RGB', (200, 50), color='white')
             d = ImageDraw.Draw(img)
             d.text((10, 10), "Test Türkçe", fill=(0, 0, 0))
             
-            # Türkçe dil ile OCR yapmayı dene
+            # Try OCR with Turkish language
             pytesseract.pytesseract.tesseract_cmd = settings.TESSERACT_CMD
             result = pytesseract.image_to_string(img, lang='tur')
-            logger.info("Türkçe dil desteği doğrulandı.")
+            logger.info("Turkish language support verified.")
         except Exception as e:
-            logger.error(f"Türkçe dil verileri kurulu olmayabilir: {e}")
-            print("\n==== Türkçe Dil Verileri Bulunamadı ====")
-            print("GameScout Türkçe OCR kullanacak şekilde yapılandırıldı, ancak dil verileri kurulu olmayabilir.")
-            print("Türkçe dil verilerini kurmak için:")
-            print("1. Türkçe verileri buradan indirin: https://github.com/tesseract-ocr/tessdata/")
-            print("2. 'tur.traineddata' dosyasını Tesseract 'tessdata' klasörüne yerleştirin")
-            print("   (Genellikle C:\\Program Files\\Tesseract-OCR\\tessdata\\)")
-            print("3. GameScout'u yeniden başlatın")
-            print("\nAlternatif olarak, config/settings.py içindeki OCR_LANGUAGE'ı 'eng' olarak değiştirebilirsiniz")
+            logger.error(f"Turkish language data may not be installed: {e}")
+            print("\n==== Turkish Language Data Not Found ====")
+            print("GameScout is configured to use Turkish OCR, but the language data may not be installed.")
+            print("To install Turkish language data:")
+            print("1. Download the Turkish data from: https://github.com/tesseract-ocr/tessdata/")
+            print("2. Place 'tur.traineddata' file in the Tesseract 'tessdata' folder")
+            print("   (Usually C:\\Program Files\\Tesseract-OCR\\tessdata\\)")
+            print("3. Restart GameScout")
+            print("\nAlternatively, you can change OCR_LANGUAGE to 'eng' in config/settings.py")
             print("===========================================\n")
             return False
     
-    # Harita verilerini kontrol et ve eksik olanları oluştur
+    # Check map data cache and generate missing files
     check_map_data_cache()        
             
     return True
 
 def check_map_data_cache():
-    """Tüm bölgelerin cache dosyalarını kontrol eder ve eksik olanları oluşturur."""
+    """
+    Verifies all region cache files exist and are valid.
+    
+    Creates or updates any missing or outdated cache files.
+    """
     from data.map_data import GAME_REGIONS, get_cached_filename, is_cache_valid
     
-    logger.info("Harita verileri cache'i kontrol ediliyor...")
+    logger.info("Checking map data cache...")
     cache_dir = os.path.join(os.path.dirname(__file__), "cache")
     
-    # Cache klasörünün var olup olmadığını kontrol et
+    # Ensure cache directory exists
     if not os.path.exists(cache_dir):
         os.makedirs(cache_dir)
-        logger.info("Cache klasörü oluşturuldu.")
+        logger.info("Cache directory created.")
     
-    # Eksik veya güncel olmayan bölgeleri kontrol et
+    # Check for missing or outdated regions
     missing_regions = []
     for region_name in GAME_REGIONS:
         cache_file = get_cached_filename(region_name)
         if not os.path.exists(cache_file) or not is_cache_valid(cache_file):
             missing_regions.append(region_name)
     
-    # Eksik bölgeler varsa önbelleğe al
+    # Generate missing cache files if needed
     if missing_regions:
         num_missing = len(missing_regions)
-        logger.info(f"{num_missing} bölge için eksik veya güncel olmayan cache dosyası tespit edildi.")
-        print(f"\n{num_missing} bölge için harita verileri önbelleğe alınıyor...")
+        logger.info(f"{num_missing} region(s) have missing or outdated cache files.")
+        print(f"\nCaching map data for {num_missing} region(s)...")
         
-        # Kullanıcıya bilgi ver ve önbellek işlemini başlat
+        # Start cache process and inform user
         cached, failed = cache_all_regions()
         
         if failed:
-            logger.warning(f"{len(failed)} bölge önbelleğe alınamadı: {', '.join(failed)}")
-            print(f"Uyarı: {len(failed)} bölge önbelleğe alınamadı.")
+            logger.warning(f"{len(failed)} region(s) could not be cached: {', '.join(failed)}")
+            print(f"Warning: {len(failed)} region(s) could not be cached.")
         else:
-            logger.info("Tüm harita verileri başarıyla önbelleğe alındı.")
-            print("Tüm harita verileri başarıyla önbelleğe alındı!")
+            logger.info("All map data successfully cached.")
+            print("All map data successfully cached!")
     else:
-        logger.info("Tüm bölgelerin cache verileri güncel.")
+        logger.info("All region cache files are up to date.")
 
 def process_command_input(hud_update_queue):
-    """Kullanıcının komut satırından gönderdiği soruları işleyen işlev."""
+    """
+    Processes user commands from the terminal.
+    
+    Allows users to interact with the RAG assistant by typing questions
+    about the game in the command line.
+    
+    Args:
+        hud_update_queue: Thread-safe queue for passing updates to the HUD
+    """
     global rag_assistant
     
-    print("\nGameScout RAG Asistanı hazır! Oyunla ilgili sorular sorabileceğiniz komut satırı.")
-    print("Çıkmak için 'quit', 'exit' veya 'q' yazın.\n")
+    print("\nGameScout RAG Assistant ready! Command line for game-related questions.")
+    print("Type 'quit', 'exit', or 'q' to exit.\n")
     
     while True:
         try:
-            user_input = input("Soru > ")
+            user_input = input("Question > ")
             
             if user_input.lower() in ["quit", "exit", "q"]:
-                print("RAG Asistanı kapatılıyor...")
+                print("Shutting down RAG Assistant...")
                 break
                 
             if not user_input.strip():
                 continue
                 
             if rag_assistant and rag_assistant.is_initialized:
-                # Sorguyu RAG Asistanına yolla
-                logger.info(f"Kullanıcı sorusu gönderiliyor: {user_input}")
+                # Send query to RAG Assistant
+                logger.info(f"Sending user question: {user_input}")
                 response = rag_assistant.ask_game_ai(user_input)
-                print(f"\nYanıt: {response}\n")
+                print(f"\nAnswer: {response}\n")
             else:
-                print("RAG Asistanı henüz başlatılmamış veya başlatılamadı.")
+                print("RAG Assistant has not been initialized yet or failed to initialize.")
                 
         except KeyboardInterrupt:
-            print("\nRAG Asistanı kapatılıyor...")
+            print("\nShutting down RAG Assistant...")
             break
         except Exception as e:
-            logger.error(f"Soru işlenirken hata: {str(e)}")
-            print(f"Hata: {str(e)}")
+            logger.error(f"Error processing question: {str(e)}")
+            print(f"Error: {str(e)}")
 
 def main_loop():
-    """GameScout için ana yürütme döngüsü."""
+    """
+    Main execution loop for GameScout.
+    
+    Handles initialization of all components, runs the screen capture and
+    processing loop, and manages the HUD and command input threads.
+    """
     global rag_assistant
     
-    logger.info(f"{settings.APP_NAME} v{settings.VERSION} başlatılıyor")
+    logger.info(f"{settings.APP_NAME} v{settings.VERSION} starting up")
     
-    # Başlamadan önce bağımlılıkları kontrol et
+    # Check dependencies before starting
     if not check_dependencies():
-        logger.error("Kritik bağımlılık eksik. Çıkılıyor.")
+        logger.error("Critical dependency missing. Exiting.")
         return
 
-    # Ana döngü ve HUD iş parçacığı arasındaki iletişim için iş parçacığı güvenli kuyruk
+    # Create thread-safe queue for communication between main loop and HUD thread
     hud_update_queue = queue.Queue()
 
-    # Bileşenleri başlat
+    # Initialize components
     game_state = decision_engine.GameState()
     hud = hud_display.HudWindow(hud_update_queue)
-    hud.start() # HUD iş parçacığını başlat
+    hud.start()  # Start HUD thread
 
-    # RAG Asistanını başlat
+    # Initialize RAG Assistant
     try:
         rag_assistant = RAGAssistant()
         if not rag_assistant.initialize():
-            logger.error("RAG Asistanı başlatılamadı.")
+            logger.error("RAG Assistant failed to initialize.")
             rag_assistant = None
         else:
-            logger.info("RAG Asistanı başarıyla başlatıldı.")
+            logger.info("RAG Assistant successfully initialized.")
     except Exception as e:
-        logger.error(f"RAG Asistanı başlatılırken hata: {str(e)}")
+        logger.error(f"Error initializing RAG Assistant: {str(e)}")
         rag_assistant = None
 
-    # Karakter sınıfını ayarla
+    # Set character class
     game_state.character_class = settings.DEFAULT_CHARACTER_CLASS
-    logger.info(f"Karakter sınıfı '{game_state.character_class}' olarak ayarlandı.")
+    logger.info(f"Character class set to '{game_state.character_class}'.")
 
-    # Komut satırı sorgu iş parçacığını başlat
+    # Start command line query thread
     command_thread = threading.Thread(
         target=process_command_input,
         args=(hud_update_queue,),
@@ -182,107 +218,106 @@ def main_loop():
     command_thread.start()
 
     try:
-        # İlk mesaj
-        hud_update_queue.put("GameScout Başlatılıyor...")
+        # Initial message
+        hud_update_queue.put("Starting GameScout...")
         
-        # Karakter sınıfını ve RAG durumunu içeren başlangıç mesajı göster
-        rag_status = "HAZIR" if rag_assistant and rag_assistant.is_initialized else "DEVRE DIŞI"
-        hud_update_queue.put(f"GameScout Hazır!\nKarakter Sınıfı: {game_state.character_class}\nBölge: Aranıyor...\nRAG Asistanı: {rag_status}")
-        time.sleep(2)  # Başlangıç mesajını göstermek için kısa bir süre bekle
+        # Show startup message with character class and RAG status
+        rag_status = "READY" if rag_assistant and rag_assistant.is_initialized else "DISABLED"
+        hud_update_queue.put(f"GameScout Ready!\nCharacter Class: {game_state.character_class}\nRegion: Searching...\nRAG Assistant: {rag_status}")
+        time.sleep(2)  # Brief pause to display startup message
 
+        # Main processing loop
         while True:
             start_time = time.time()
-            logger.debug("--- Ana Döngü Yinelemesi Başlangıcı ---")
+            logger.debug("--- Main Loop Iteration Start ---")
 
-            # 1. Ekranı Yakala
+            # Step 1: Capture the screen
             screenshot = screen_capture.take_screenshot()
 
             if screenshot:
-                # 2. OCR İşle
+                # Step 2: Process with OCR
                 ocr_text = ocr_processor.extract_text_from_image(screenshot)
 
                 if ocr_text == "TESSERACT_ERROR":
-                    logger.error("Tesseract hatası tespit edildi. Uygulama durduruluyor.")
-                    hud_update_queue.put("HATA: Tesseract bulunamadı veya yapılandırılmadı. Çıkılıyor.")
-                    break # Kritik hatada döngüden çık
+                    logger.error("Tesseract error detected. Stopping application.")
+                    hud_update_queue.put("ERROR: Tesseract not found or not properly configured. Exiting.")
+                    break  # Exit loop on critical error
 
                 if ocr_text:
-                    # 3. Oyun Durumunu Güncelle
-                    game_state.update_from_ocr(ocr_text) # Şimdilik temel güncelleme
-                    logger.debug(f"Mevcut Oyun Durumu: {game_state}")
+                    # Step 3: Update game state
+                    game_state.update_from_ocr(ocr_text)
+                    logger.debug(f"Current Game State: {game_state}")
 
-                    # 4. Önerileri Oluştur (Agent Mantığı)
+                    # Step 4: Generate recommendations (Agent logic)
                     recommendations = decision_engine.generate_recommendations(game_state)
 
-                    # 5. Biçimlendir ve HUD'a Gönder
-                    hud_text = f"Bölge: {game_state.current_region or 'Bilinmiyor'}\n"
-                    hud_text += f"Sınıf: {game_state.character_class}\n\n"
+                    # Step 5: Format and send to HUD
+                    hud_text = f"Region: {game_state.current_region or 'Unknown'}\n"
+                    hud_text += f"Class: {game_state.character_class}\n\n"
                     
-                    # Yakındaki önemli noktaları ekle
+                    # Add nearby points of interest
                     if game_state.nearby_points_of_interest:
-                        hud_text += "Yakındaki Önemli Noktalar:\n"
+                        hud_text += "Nearby Points of Interest:\n"
                         for i, poi in enumerate(game_state.nearby_points_of_interest[:3]):
                             hud_text += f"• {poi['name']}\n"
                         hud_text += "\n"
                     
-                    # Bölgedeki görevleri ekle
+                    # Add region quests
                     if game_state.region_quests:
-                        hud_text += "Bölge Görevleri:\n"
+                        hud_text += "Region Quests:\n"
                         for i, quest in enumerate(game_state.region_quests[:2]):
                             hud_text += f"• {quest['name']}\n"
                         hud_text += "\n"
                     
-                    # Önerileri ekle
+                    # Add recommendations
                     if recommendations:
-                        hud_text += "Öneriler:\n" + "\n".join(f"• {rec}" for rec in recommendations)
+                        hud_text += "Recommendations:\n" + "\n".join(f"• {rec}" for rec in recommendations)
                     else:
-                        hud_text += "Öneriler: Şu an mevcut değil."
+                        hud_text += "Recommendations: None available at this time."
                         
-                    # RAG durumunu göster
-                    rag_status = "HAZIR" if rag_assistant and rag_assistant.is_initialized else "DEVRE DIŞI"
-                    hud_text += f"\n\nRAG Asistanı: {rag_status}"
+                    # Show RAG status
+                    rag_status = "READY" if rag_assistant and rag_assistant.is_initialized else "DISABLED"
+                    hud_text += f"\n\nRAG Assistant: {rag_status}"
                     if rag_assistant and rag_assistant.is_initialized:
-                        hud_text += "\nSoru sormak için komut satırını kullanın."
+                        hud_text += "\nUse command line to ask questions."
                     
                     hud_update_queue.put(hud_text)
                 else:
-                    logger.debug("Ekran görüntüsünde metin bulunamadı.")
-                    # İsteğe bağlı olarak HUD'a bir "Taranıyor..." mesajı gönder veya son mesajı koru
-                    # hud_update_queue.put(f"Bölge: {game_state.current_region or 'Bilinmiyor'}\n\nTaranıyor...")
-
+                    logger.debug("No text found in screenshot.")
+                    # Optionally send a "Scanning..." message to HUD or preserve last message
+                    # hud_update_queue.put(f"Region: {game_state.current_region or 'Unknown'}\n\nScanning...")
 
             else:
-                logger.warning("Bu döngüde ekran görüntüsü alınamadı.")
-                hud_update_queue.put("Ekran yakalama hatası...")
+                logger.warning("Failed to capture screenshot this cycle.")
+                hud_update_queue.put("Screen capture error...")
 
-
-            # Geçen süreyi hesapla ve ona göre bekle
+            # Calculate elapsed time and sleep accordingly
             end_time = time.time()
             elapsed_time = end_time - start_time
             sleep_time = max(0, settings.SCREENSHOT_INTERVAL_SECONDS - elapsed_time)
-            logger.debug(f"Döngü yinelemesi {elapsed_time:.2f}s sürdü. {sleep_time:.2f}s uyuluyor.")
+            logger.debug(f"Loop iteration took {elapsed_time:.2f}s. Sleeping for {sleep_time:.2f}s.")
             time.sleep(sleep_time)
 
     except KeyboardInterrupt:
-        logger.info("Klavye kesintisi alındı. Kapatılıyor...")
+        logger.info("Keyboard interrupt received. Shutting down...")
     except Exception as e:
-        logger.critical(f"Ana döngüde beklenmeyen bir hata oluştu: {e}", exc_info=True)
+        logger.critical(f"Unexpected error in main loop: {e}", exc_info=True)
         try:
-            # Çıkmadan önce HUD aracılığıyla kullanıcıyı bilgilendirmeyi dene
-             hud_update_queue.put(f"KRİTİK HATA: {e}\nÇıkılıyor.")
-             time.sleep(1) # HUD'a potansiyel olarak görüntüleme zamanı ver
+            # Try to inform user through HUD before exiting
+             hud_update_queue.put(f"CRITICAL ERROR: {e}\nExiting.")
+             time.sleep(1)  # Give HUD time to potentially display
         except Exception:
-            pass # Kapatma bildirimi sırasındaki hataları yoksay
+            pass  # Ignore errors during shutdown notification
     finally:
-        # RAG Asistanını kapat
+        # Clean shutdown
         if rag_assistant:
-            logger.info("RAG Asistanı kapatılıyor...")
+            logger.info("Shutting down RAG Assistant...")
             rag_assistant.shutdown()
             
-        logger.info("HUD iş parçacığı durduruluyor...")
+        logger.info("Stopping HUD thread...")
         hud.stop()
-        hud.join(timeout=2) # HUD iş parçacığının bitmesini bekle
-        logger.info(f"{settings.APP_NAME} tamamlandı.")
+        hud.join(timeout=2)  # Wait for HUD thread to complete
+        logger.info(f"{settings.APP_NAME} completed.")
 
 
 if __name__ == "__main__":

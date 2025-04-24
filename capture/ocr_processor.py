@@ -1,76 +1,127 @@
 # gamescout/capture/ocr_processor.py
+"""
+OCR Processing Module for GameScout
+
+This module handles text extraction from screenshots using the Tesseract OCR engine.
+It processes images captured from screen_capture.py and extracts text content that
+can be used to determine the game state.
+"""
 
 import pytesseract
 from PIL import Image
+from typing import Optional
 from config import settings
 from utils.helpers import get_logger, clean_text
 
+# Initialize logger
 logger = get_logger(__name__)
 
-# Tesseract yolu ayarlandıysa yapılandır
+# Configure Tesseract path if provided
 if settings.TESSERACT_CMD:
     pytesseract.pytesseract.tesseract_cmd = settings.TESSERACT_CMD
-    logger.info(f"Tesseract yolu kullanılıyor: {settings.TESSERACT_CMD}")
+    logger.info(f"Using Tesseract path: {settings.TESSERACT_CMD}")
 else:
-    logger.warning("Tesseract yolu ayarlanmamış!")
+    logger.warning("Tesseract path not configured!")
 
-def extract_text_from_image(image: Image.Image) -> str:
+def preprocess_image(image: Image.Image) -> Image.Image:
     """
-    Tesseract OCR kullanarak bir PIL Image nesnesinden metin çıkarır.
+    Apply preprocessing steps to improve OCR accuracy.
+    
+    This can include operations like converting to grayscale,
+    adjusting contrast, applying thresholds, etc.
+    
+    Args:
+        image: The PIL Image to preprocess
+        
+    Returns:
+        The preprocessed PIL Image
+    """
+    # Currently using minimal processing, but can be expanded as needed
+    # Consider image processing techniques to improve OCR quality:
+    # - Convert to grayscale
+    # - Resize for better recognition
+    # - Apply thresholding or other filters
+    
+    # Example preprocessing (uncomment to use):
+    # image = image.convert('L')  # Convert to grayscale
+    # image = image.resize((image.width * 2, image.height * 2))  # Resize for better recognition
+    
+    return image
+
+def extract_text_from_image(image: Optional[Image.Image]) -> str:
+    """
+    Extract text from a PIL Image object using Tesseract OCR.
 
     Args:
-        image: İşlenecek PIL Image nesnesi.
-
+        image: The PIL Image object to process
+        
     Returns:
-        Çıkarılan metin bir dize olarak, veya bir hata oluşursa veya metin bulunamazsa boş bir dize.
+        Extracted text as a string, or an empty string if an error occurs or no text is found.
+        Returns "TESSERACT_ERROR" if Tesseract is not properly configured.
     """
     if image is None:
-        logger.warning("OCR işleme için None görüntü alındı.")
+        logger.warning("Received None image for OCR processing.")
         return ""
+    
     try:
-        # Hata ayıklama için görüntü detaylarını kaydet
-        logger.info(f"OCR için görüntü işleniyor: Boyut={image.size}, Mod={image.mode}")
+        # Log image details for debugging
+        logger.info(f"Processing image for OCR: Size={image.size}, Mode={image.mode}")
         
-        # Ön işleme adımları burada eklenebilir (örn., gri tonlama, eşikleme)
-        # image = image.convert('L') # Örnek: Gri tonlamaya dönüştür
-        # custom_config = r'--oem 3 --psm 6' # Örnek Tesseract yapılandırması
+        # Apply preprocessing (optional)
+        processed_image = preprocess_image(image)
         
-        # Hata ayıklama için geçerli görüntünün bir kopyasını kaydet
+        # Save a copy of the current image for debugging
         debug_path = "ocr_debug_image.png"
-        image.save(debug_path)
-        logger.info(f"Hata ayıklama görüntüsü şuraya kaydedildi {debug_path}")
+        processed_image.save(debug_path)
+        logger.info(f"Debug image saved to {debug_path}")
         
-        text = pytesseract.image_to_string(image, lang=settings.OCR_LANGUAGE) #, config=custom_config)
+        # Optional Tesseract configuration
+        # custom_config = r'--oem 3 --psm 6'  # Example: Page segmentation mode 6 (block of text)
+        
+        # Extract text using Tesseract
+        text = pytesseract.image_to_string(
+            processed_image, 
+            lang=settings.OCR_LANGUAGE
+            # config=custom_config  # Uncomment to use custom configuration
+        )
+        
+        # Clean the extracted text
         cleaned = clean_text(text)
         
-        # Hata ayıklama için tam metni kaydet
-        logger.info(f"OCR çıkarılan tam metin: {cleaned}")
-        
+        # Log full text for debugging
+        if cleaned:
+            logger.info(f"OCR extracted text (first 100 chars): {cleaned[:100]}...")
+            logger.debug(f"Full OCR text: {cleaned}")
+        else:
+            logger.info("No text extracted from image")
+            
         return cleaned
+        
     except pytesseract.TesseractNotFoundError:
-        logger.error("Tesseract Hatası: Tesseract yürütülebilir dosyası bulunamadı veya doğru yapılandırılmadı.")
-        logger.error(f"Lütfen Tesseract'ın kurulu olduğundan ve '{settings.TESSERACT_CMD}' yolunun (ayarlandıysa) doğru olduğundan emin olun.")
-        # Belirli bir istisna fırlatmayı veya özel bir değer döndürmeyi düşünün
+        logger.error("Tesseract Error: Tesseract executable not found or not properly configured.")
+        logger.error(f"Please ensure Tesseract is installed and the path '{settings.TESSERACT_CMD}' (if set) is correct.")
+        # Return a special value to indicate this specific error
         return "TESSERACT_ERROR"
     except Exception as e:
-        logger.error(f"OCR işleme sırasında hata: {e}", exc_info=True)
+        logger.error(f"Error during OCR processing: {e}", exc_info=True)
         return ""
 
 if __name__ == '__main__':
-    # Örnek kullanım: Test görüntüsü yükle ve metin çıkar
-    print("OCR işleyici test ediliyor...")
+    # Example usage: Load a test image and extract text
+    print("Testing OCR processor...")
     try:
-        # Test için bir kukla görüntü oluşturun veya bir tane yükleyin
-        # img = Image.new('RGB', (600, 150), color = 'white')
+        # Create a dummy test image with text
+        # from PIL import ImageDraw
+        # img = Image.new('RGB', (600, 150), color='white')
         # d = ImageDraw.Draw(img)
-        # d.text((10,10), "OCR Testinden Merhaba Dünya", fill=(0,0,0))
+        # d.text((10,10), "Hello World from OCR Test", fill=(0,0,0))
         # img.save("test_ocr_input.png")
 
-        test_image_path = "test_screenshot.png" # screen_capture'ın bunu oluşturduğunu varsayar
+        test_image_path = "test_screenshot.png"  # Assumes screen_capture.py created this
         img = Image.open(test_image_path)
         extracted = extract_text_from_image(img)
-        print(f"'{test_image_path}' dosyasından çıkarılan metin:\n---\n{extracted}\n---")
+        print(f"Text extracted from '{test_image_path}':\n---\n{extracted}\n---")
     except FileNotFoundError:
-        print(f"Hata: Test görüntüsü '{test_image_path}' bulunamadı. Önce screen_capture.py'yi çalıştırın veya geçerli bir görüntü sağlayın.")
+        print(f"Error: Test image '{test_image_path}' not found. Run screen_capture.py first or provide a valid image.")
     except Exception as e:
-        print(f"OCR testi sırasında bir hata oluştu: {e}")
+        print(f"An error occurred during OCR testing: {e}")

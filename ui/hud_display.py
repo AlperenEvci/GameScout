@@ -1,64 +1,74 @@
 # gamescout/ui/hud_display.py
+"""
+HUD Display Module for GameScout
+
+This module provides a Heads-Up Display (HUD) window that shows game information
+and recommendations to the player in real-time. It runs in a separate thread
+to avoid blocking the main application.
+"""
 
 import tkinter as tk
-from tkinter import ttk, font # Themed Tkinter widgets
+from tkinter import ttk, font  # Themed Tkinter widgets
 from config import settings
 from utils.helpers import get_logger
 import threading
-import queue # For thread-safe communication
+import queue  # For thread-safe communication
 
 logger = get_logger(__name__)
 
 class HudWindow(threading.Thread):
     """
-    Ayrı bir thread'de Tkinter kullanarak HUD ekranını yönetir.
+    Manages the HUD display window using Tkinter in a separate thread.
+    
+    The HUD window shows game information, detected regions, and recommendations
+    to the player while the game is running.
     """
     def __init__(self, update_queue: queue.Queue):
-        super().__init__(daemon=True) # Ana program sonlandığında thread'i sonlandır
+        super().__init__(daemon=True)  # Terminate thread when main program ends
         self.update_queue = update_queue
         self.root = None
         self.info_label = None
         self._stop_event = threading.Event()
-        self.theme = "dark"  # default tema
+        self.theme = "dark"  # default theme
 
     def stop(self):
-        """Thread'in durmasını sağlar."""
+        """Signals the thread to stop."""
         self._stop_event.set()
         if self.root:
-            # Tkinter ana döngüsünde destroy işlemini planla
+            # Schedule destroy operation in Tkinter main loop
             self.root.after(0, self.root.destroy)
-        logger.info("HUD durdurma isteği alındı.")
+        logger.info("HUD stop request received.")
 
     def run(self):
-        """Tkinter penceresi için ana döngü."""
-        logger.info("HUD thread başlatılıyor.")
+        """Main loop for the Tkinter window."""
+        logger.info("Starting HUD thread.")
         try:
             self.root = tk.Tk()
             self.root.title(f"{settings.APP_NAME} HUD")
             self.root.geometry(f"{settings.HUD_WIDTH}x{settings.HUD_HEIGHT}")
 
-            # Pencereyi her zaman üstte tut
+            # Keep window always on top
             self.root.wm_attributes("-topmost", 1)
-            # Pencereyi (kısmen) şeffaf yap (işletim sistemine/pencere yöneticisine bağlı olabilir)
+            # Make window (partially) transparent (may depend on OS/window manager)
             try:
                 self.root.attributes("-alpha", settings.HUD_TRANSPARENCY)
             except tk.TclError:
-                logger.warning("Pencere şeffaflığı (-alpha) bu sistemde desteklenmiyor.")
+                logger.warning("Window transparency (-alpha) not supported on this system.")
 
-            # --- Tema ayarları ---
+            # --- Theme settings ---
             if self.theme == "dark":
-                bg_color = "#1E1E1E"  # Koyu arka plan
-                fg_color = "#00FF00"  # Yeşil metin
-                highlight_color = "#3700B3"  # Vurgu rengi
-            else:  # light tema
-                bg_color = "#F0F0F0"  # Açık arka plan
-                fg_color = "#007700"  # Koyu yeşil metin
-                highlight_color = "#BB86FC"  # Vurgu rengi
+                bg_color = "#1E1E1E"  # Dark background
+                fg_color = "#00FF00"  # Green text
+                highlight_color = "#3700B3"  # Highlight color
+            else:  # light theme
+                bg_color = "#F0F0F0"  # Light background
+                fg_color = "#007700"  # Dark green text
+                highlight_color = "#BB86FC"  # Highlight color
 
-            # HUD'u daha görünür kılmak için belirgin bir kenarlık ekle
-            self.root.configure(bg=highlight_color)  # Kenarlık için renk
+            # Add a distinct border to make HUD more visible
+            self.root.configure(bg=highlight_color)  # Color for border
             
-            # --- HUD elemanları ekle ---
+            # --- Add HUD elements ---
             style = ttk.Style()
             style.configure("TLabel", background=bg_color, foreground=fg_color, padding=5, font=('Helvetica', 10, 'bold'))
             style.configure("TFrame", background=bg_color)
@@ -66,7 +76,7 @@ class HudWindow(threading.Thread):
             main_frame = ttk.Frame(self.root, padding="5", style="TFrame")
             main_frame.pack(expand=True, fill=tk.BOTH)
 
-            # Başlık alanı
+            # Title area
             header_frame = ttk.Frame(main_frame, style="TFrame")
             header_frame.pack(fill=tk.X, pady=(0, 5))
             
@@ -80,140 +90,162 @@ class HudWindow(threading.Thread):
             )
             title_label.pack(side=tk.LEFT)
             
-            # Ana içerik alanı
+            # Main content area
             self.info_label = ttk.Label(
                 main_frame,
-                text="GameScout HUD başlatılıyor...",
-                wraplength=settings.HUD_WIDTH - 20, # Metni pencere genişliğine sığdır
+                text="Starting GameScout HUD...",
+                wraplength=settings.HUD_WIDTH - 20,  # Wrap text to fit window width
                 justify=tk.LEFT,
                 style="TLabel"
             )
             self.info_label.pack(pady=5, padx=5, anchor='nw', fill=tk.BOTH, expand=True)
 
-            # İlk güncelleme kontrolünü planla
+            # Schedule first update check
             self.root.after(settings.HUD_UPDATE_INTERVAL_MS, self.check_queue)
 
-            # Klavye kısayolları ekle
+            # Add keyboard shortcuts
             self.root.bind("<Escape>", lambda e: self.toggle_visibility())
             self.root.bind("<F1>", lambda e: self.toggle_theme())
 
-            logger.info("HUD penceresi oluşturuldu. Ana döngü başlatılıyor.")
+            logger.info("HUD window created. Starting main loop.")
             self.root.mainloop()
 
         except Exception as e:
-            logger.error(f"HUD thread'de hata: {e}", exc_info=True)
+            logger.error(f"Error in HUD thread: {e}", exc_info=True)
         finally:
-            logger.info("HUD thread sonlandı.")
-            self.root = None # Döngü çıkışında root'un temizlendiğinden emin ol
+            logger.info("HUD thread terminated.")
+            self.root = None  # Ensure root is cleaned up after loop exit
 
     def toggle_visibility(self):
-        """HUD penceresini gizle/göster."""
+        """Toggle HUD window visibility (hide/show)."""
         if self.root:
             if self.root.winfo_viewable():
-                self.root.withdraw()  # Pencereyi gizle
-                logger.debug("HUD gizlendi")
+                self.root.withdraw()  # Hide window
+                logger.debug("HUD hidden")
             else:
-                self.root.deiconify()  # Pencereyi göster
-                self.root.lift()  # Pencereyi en öne getir
-                logger.debug("HUD gösterildi")
+                self.root.deiconify()  # Show window
+                self.root.lift()  # Bring window to front
+                logger.debug("HUD shown")
 
     def toggle_theme(self):
-        """Tema değiştir (açık/koyu)"""
+        """Toggle between light and dark themes."""
         if self.theme == "dark":
             self.theme = "light"
         else:
             self.theme = "dark"
         
-        # Tema değişimi için pencereyi yeniden oluşturmalıyız
-        # Bu yüzden şimdilik sadece log kaydı yapıyoruz
-        logger.info(f"Tema değiştirildi: {self.theme}")
+        # We would need to recreate the window for theme changes
+        # For now, just log the change
+        logger.info(f"Theme changed to: {self.theme}")
         
-        # İdeal olarak, tüm widget'ların renklerini güncellememiz gerekir
-        # Ama bu basit bir örnekte gözardı ediyoruz
+        # Ideally, we would update all widget colors here
+        # But for this simple example, we're ignoring that
 
     def format_rag_response(self, text):
-        """RAG yanıtlarını daha güzel formatlar"""
+        """
+        Format RAG responses for better readability.
+        
+        Detects and formats question/answer pairs in RAG responses
+        to make them more visually distinct.
+        
+        Args:
+            text: The text to format
+            
+        Returns:
+            Formatted text
+        """
         if "📝 Soru:" in text and "🔍 Yanıt:" in text:
-            parts = text.split("🔍 Yanıt:")
+            # Convert Turkish markers to English
+            text = text.replace("📝 Soru:", "📝 Question:")
+            text = text.replace("🔍 Yanıt:", "🔍 Answer:")
+            
+        if "📝 Question:" in text and "🔍 Answer:" in text:
+            parts = text.split("🔍 Answer:")
             if len(parts) == 2:
-                question_part = parts[0].replace("📝 Soru:", "").strip()
+                question_part = parts[0].replace("📝 Question:", "").strip()
                 answer_part = parts[1].strip()
                 
-                formatted = f"📝 SORU: {question_part}\n\n"
-                formatted += f"🔍 YANIT: {answer_part}"
+                formatted = f"📝 QUESTION: {question_part}\n\n"
+                formatted += f"🔍 ANSWER: {answer_part}"
                 return formatted
         
-        return text  # Format uymazsa orijinal metni döndür
+        return text  # Return original text if format doesn't match
 
     def check_queue(self):
-        """Kuyruğu yeni metin için kontrol eder ve etiketi günceller."""
+        """
+        Check queue for new text updates and update the label.
+        
+        This method polls the update queue for new messages and updates
+        the HUD display accordingly. It reschedules itself to run
+        periodically unless the thread is stopping.
+        """
         if self._stop_event.is_set():
-            logger.debug("Durdurma etkinliği ayarlandı, kuyruk kontrolü atlanıyor.")
-            return # Durduruluyorsa yeniden planlamayın
+            logger.debug("Stop event set, skipping queue check.")
+            return  # Don't reschedule if stopping
 
         try:
-            # Kuyruktaki tüm mevcut mesajları bloke olmadan işle
+            # Process all current messages in queue without blocking
             while True:
                 try:
                     new_text = self.update_queue.get_nowait()
-                    if self.info_label and self.root: # Widget'ların hala var olup olmadığını kontrol et
-                        # RAG yanıtlarını formatla
+                    if self.info_label and self.root:  # Check that widgets still exist
+                        # Format RAG responses
                         formatted_text = self.format_rag_response(new_text)
                         self.info_label.config(text=formatted_text)
-                        logger.debug(f"HUD yeni metinle güncellendi: {new_text[:50]}...")
+                        logger.debug(f"HUD updated with new text: {new_text[:50]}...")
                     self.update_queue.task_done()
                 except queue.Empty:
-                    break # Başka mesaj yok
+                    break  # No more messages
                 except tk.TclError as e:
-                     # Widget'ın güncelleme sırasında yok edilebileceği durumları ele al
-                     logger.warning(f"HUD güncellemesi sırasında Tkinter hatası (muhtemelen widget yok edildi): {e}")
-                     break # Widget yoksa güncellemeyi denemeye devam etme
+                     # Handle cases where widget might be destroyed during update
+                     logger.warning(f"Tkinter error during HUD update (widget likely destroyed): {e}")
+                     break  # Don't continue trying to update if widget gone
                 except Exception as e:
-                    logger.error(f"HUD güncelleme kuyruğunu işlerken hata: {e}", exc_info=True)
-                    break # Beklenmeyen hatalarda potansiyel sonsuz döngüden kaçının
+                    logger.error(f"Error processing HUD update queue: {e}", exc_info=True)
+                    break  # Avoid potential infinite loop on unexpected errors
 
         except Exception as e:
-            logger.error(f"check_queue içinde hata: {e}", exc_info=True)
+            logger.error(f"Error in check_queue: {e}", exc_info=True)
 
-        # Durdurulmuyorsa ve root varsa kontrolü yeniden planla
+        # Reschedule check if not stopping and root exists
         if not self._stop_event.is_set() and self.root:
             self.root.after(settings.HUD_UPDATE_INTERVAL_MS, self.check_queue)
 
 
 if __name__ == '__main__':
-    # Örnek kullanım: HUD'ı başlat ve güncellemeler gönder
-    print("HUD Ekranı Test Ediliyor...")
+    # Example usage: Start the HUD and send updates
+    print("Testing HUD Display...")
     q = queue.Queue()
     hud = HudWindow(q)
     hud.start()
-    print("HUD thread başlatıldı. Test mesajları gönderiliyor...")
+    print("HUD thread started. Sending test messages...")
 
     try:
-        # Bazı test mesajları gönder
-        q.put("Test Mesajı 1: Hoş Geldiniz!")
+        # Send some test messages
+        q.put("Test Message 1: Welcome!")
         import time
         time.sleep(2)
-        q.put("Test Mesajı 2: Bu, HUD pencere sınırları içinde güzelce sarılması gereken daha uzun bir mesajdır.")
+        q.put("Test Message 2: This is a longer message that should wrap nicely within the HUD window bounds.")
         time.sleep(2)
-        q.put("Test Mesajı 3: Tekrar güncelleniyor...")
+        q.put("Test Message 3: Updating again...")
         time.sleep(2)
         
-        # RAG formatında test mesajı
+        # Test message in RAG format
         rag_test = """
-📝 Soru: Shadowheart kimdir?
+📝 Question: Who is Shadowheart?
 
-🔍 Yanıt: 
-Shadowheart, Shar'a tapan ve gruptaki ana rahip (Cleric) karakteri olan bir Yarı-Elf'tir. 
-Gizli bir geçmişe sahiptir ve Absolute'a ibadet eden kült ile bağlantıları vardır. 
-Karanlık ve gizemli bir kişiliğe sahiptir, ancak zamanla karakterinize bağlılık geliştirebilir.
+🔍 Answer: 
+Shadowheart is a Half-Elf who is a Cleric of Shar and the main cleric character in the party. 
+She has a secretive background and connections with the cult that worships the Absolute. 
+She has a dark and mysterious personality, but can develop loyalty to your character over time.
         """
         q.put(rag_test)
-        time.sleep(5) # Bir süre çalışmaya devam et
+        time.sleep(5)  # Keep running for a while
 
     except KeyboardInterrupt:
-        print("\nKlavye kesintisi alındı.")
+        print("\nKeyboard interrupt received.")
     finally:
-        print("HUD durduruluyor...")
+        print("Stopping HUD...")
         hud.stop()
-        hud.join(timeout=2) # Thread'in bitmesini bekle
-        print("HUD testi tamamlandı.")
+        hud.join(timeout=2)  # Wait for thread to finish
+        print("HUD test completed.")
