@@ -38,8 +38,11 @@ logger = logging.getLogger(__name__)
 # Module constants
 INPUT_DIR = "data/wiki_processed"
 OUTPUT_DIR = "vector_db"
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"  # Lightweight but effective embedding model
+# Updated to newer, more powerful embedding model with better semantic understanding
+EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"  # Better semantic understanding than MiniLM
 BATCH_SIZE = 32  # Process documents in batches to manage memory usage
+CHUNK_SIZE = 512  # Size for document chunking
+CHUNK_OVERLAP = 128  # Overlap between chunks to maintain context
 
 # Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -90,12 +93,78 @@ def load_documents():
     return documents
 
 
+def chunk_document(doc, chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP):
+    """
+    Split a document into smaller chunks for more precise retrieval.
+    
+    Args:
+        doc (dict): Document dictionary with content to chunk
+        chunk_size (int): Target size of each chunk
+        chunk_overlap (int): Overlap between consecutive chunks
+    
+    Returns:
+        list: List of document chunks with updated metadata
+    """
+    title = doc["title"]
+    content = doc["content"]
+    doc_id = doc["document_id"]
+    
+    # Short document, no need to chunk
+    if len(content) <= chunk_size:
+        return [{
+            "document_id": f"{doc_id}-chunk-0",
+            "parent_id": doc_id,
+            "title": title,
+            "url": doc["url"],
+            "tags": doc["tags"],
+            "file_path": doc["file_path"],
+            "content": content,
+            "chunk_index": 0
+        }]
+    
+    # Split content into chunks with overlap
+    chunks = []
+    start = 0
+    chunk_index = 0
+    
+    while start < len(content):
+        # Calculate end position with respect to chunk size
+        end = min(start + chunk_size, len(content))
+        
+        # If not the first chunk and not the last chunk, adjust start for overlap
+        if start > 0:
+            start = start - chunk_overlap
+            end = min(start + chunk_size, len(content))
+        
+        # Extract chunk text
+        chunk_text = content[start:end]
+        
+        # Create chunk metadata
+        chunk = {
+            "document_id": f"{doc_id}-chunk-{chunk_index}",
+            "parent_id": doc_id,
+            "title": f"{title} (Part {chunk_index+1})",
+            "url": doc["url"],
+            "tags": doc["tags"],
+            "file_path": doc["file_path"],
+            "content": chunk_text,
+            "chunk_index": chunk_index
+        }
+        
+        chunks.append(chunk)
+        chunk_index += 1
+        start = end
+    
+    logger.debug(f"Split document '{title}' into {len(chunks)} chunks")
+    return chunks
+
 def create_embeddings(documents):
     """
     Create vector embeddings for all documents.
     
     Uses the Sentence Transformers library to encode document content into
-    dense vector representations that capture semantic meaning.
+    dense vector representations that capture semantic meaning. Documents are
+    first chunked for better retrieval precision.
     
     Args:
         documents (list): Collection of document dictionaries to embed
@@ -110,15 +179,26 @@ def create_embeddings(documents):
         logger.warning("No documents to embed")
         return None, None
     
-    # Combine title and content for better semantic representation
-    texts = [f"{doc['title']}\n\n{doc['content']}" for doc in documents]
+    # Chunk documents for better retrieval granularity
+    logger.info(f"Chunking {len(documents)} documents...")
+    chunked_docs = []
+    for doc in documents:
+        chunks = chunk_document(doc)
+        chunked_docs.extend(chunks)
+    
+    logger.info(f"Created {len(chunked_docs)} chunks from {len(documents)} documents")
+    
+    # Prepare text and metadata for embedding
+    texts = [f"{doc['title']}\n\n{doc['content']}" for doc in chunked_docs]
     metadata = [{
         "document_id": doc["document_id"],
+        "parent_id": doc.get("parent_id", doc["document_id"]),
         "title": doc["title"],
         "url": doc["url"],
         "tags": doc["tags"],
-        "file_path": doc["file_path"]
-    } for doc in documents]
+        "file_path": doc["file_path"],
+        "chunk_index": doc.get("chunk_index", 0)
+    } for doc in chunked_docs]
     
     logger.info(f"Loading embedding model: {EMBEDDING_MODEL}")
     model = SentenceTransformer(EMBEDDING_MODEL)
