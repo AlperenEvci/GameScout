@@ -6,7 +6,7 @@ import json
 import requests
 import logging
 from pathlib import Path
-from utils.helpers import get_logger
+from src.utils.helpers import get_logger
 
 # Proje kök dizinini import için ekleyin
 import sys
@@ -314,7 +314,7 @@ class LLMAPIClient:
 
 # Test - Örnek kullanım
 if __name__ == "__main__":
-    from agent.decision_engine import GameState
+    from rag.decision_engine import GameState
     
     # Test için basit bir GameState nesnesi oluştur
     gs = GameState()

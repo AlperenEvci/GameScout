@@ -11,7 +11,7 @@ import pytesseract
 from PIL import Image
 from typing import Optional
 from config import settings
-from utils.helpers import get_logger, clean_text
+from src.utils.helpers import get_logger, clean_text
 
 # Initialize logger
 logger = get_logger(__name__)

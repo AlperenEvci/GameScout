@@ -3,7 +3,7 @@
 import requests
 from bs4 import BeautifulSoup
 import json
-from utils.helpers import get_logger
+from src.utils.helpers import get_logger
 from config import settings
 import os
 import time

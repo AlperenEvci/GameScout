@@ -12,7 +12,7 @@ import pygetwindow as gw
 from PIL import Image
 from typing import Tuple, Optional
 from config import settings
-from utils.helpers import get_logger
+from src.utils.helpers import get_logger
 
 # Initialize logger for this module
 logger = get_logger(__name__)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# rag.py - RAG (Retrieval-Augmented Generation) entegrasyonu
+# assistant.py - RAG (Retrieval-Augmented Generation) integration module
 
 import os
 import sys
@@ -8,13 +8,15 @@ import queue
 import time
 from pathlib import Path
 
-# Proje kök dizinini ekleyerek diğer modülleri içe aktarabilmemizi sağlayalım
-sys.path.append(str(Path(__file__).parent.parent))
+# Add project root to path to import other modules
+project_root = Path(__file__).parent.parent.parent
+if project_root not in sys.path:
+    sys.path.append(str(project_root))
 
-from query import BG3KnowledgeBase
-from llm.api_client import LLMAPIClient
-from ui.hud_display import HudWindow
-from utils.helpers import get_logger
+from src.rag.retriever import BG3KnowledgeBase
+from src.llm.api_client import LLMAPIClient
+from src.ui.hud_display import HudWindow
+from src.utils.helpers import get_logger
 
 logger = get_logger(__name__)
 
@@ -25,7 +27,7 @@ class RAGAssistant:
     Bu sınıf, vektör veritabanı üzerinde arama yapar, sonuçları LLM'e prompt olarak gönderir
     ve oyuncuya HUD üzerinde gösterir.
     """
-      def __init__(self):
+    def __init__(self):
         """
         RAG asistanını başlat ve gerekli bileşenleri yükle.
         
@@ -100,7 +102,8 @@ class RAGAssistant:
         except Exception as e:
             logger.error(f"Arama sırasında hata: {str(e)}")
             return []
-      def _get_context_window(self):
+            
+    def _get_context_window(self):
         """API tipine göre maksimum bağlam penceresini belirle."""
         # Different LLM providers have different context window limits
         context_limits = {
@@ -169,11 +172,12 @@ class RAGAssistant:
             
             # Update current length (approximate token count)
             current_length += (len(formatted_context) // 4)
-            
             if current_length >= max_length:
                 break
                 
         return "".join(formatted_contexts)
+        
+    def build_prompt(self, user_query, contexts):
       def build_prompt(self, user_query, contexts):
         """
         Kullanıcı sorgusu ve bağlamlardan gelişmiş bir LLM prompt'u oluştur.
@@ -254,7 +258,7 @@ class RAGAssistant:
             
         try:
             # GameState nesnesinin özelliklerini prompt'a göre ayarla
-            from agent.decision_engine import GameState
+            from rag.decision_engine import GameState
             game_state = GameState()
             game_state.detected_keywords = prompt.split()[:5]  # İlk 5 kelimeyi anahtar kelime olarak kullan
             
@@ -276,13 +280,12 @@ class RAGAssistant:
     def _is_rate_limited(self):
         """Sorgu hızı sınırına ulaşılıp ulaşılmadığını kontrol et"""
         current_time = time.time()
-        if current_time - self.last_query_time < self.rate_limit:
-            return True
         return False
-      def ask_game_ai(self, user_input):
+        
+    def ask_game_ai(self, user_input):
         """
         Oyuncu sorusunu al, RAG sistemini kullanarak yanıtla ve HUD'da göster.
-        
+
         Gelişmiş RAG akışı (2025):
         1. Sorgu ön işleme ve genişletme
         2. Hibrit (semantik + anahtar kelime) arama

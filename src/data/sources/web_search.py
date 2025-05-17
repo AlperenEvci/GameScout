@@ -6,7 +6,7 @@ import os
 import time
 from urllib.parse import quote_plus
 from config import settings
-from utils.helpers import get_logger
+from src.utils.helpers import get_logger
 
 logger = get_logger(__name__)
 

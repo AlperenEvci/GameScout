@@ -14,12 +14,12 @@ import sys
 import os
 import threading
 from config import settings
-from utils.helpers import get_logger
-from capture import screen_capture, ocr_processor
-from agent import decision_engine
-from agent.rag import RAGAssistant
-from ui import hud_display
-from data.cache_all_regions import cache_all_regions
+from src.utils.helpers import get_logger
+from src.capture import screen_capture, ocr_processor
+from src.rag import decision_engine
+from src.rag.assistant import RAGAssistant
+from src.ui import hud_display
+from scripts.cache_all_regions import cache_all_regions
 # Import forum_scraper only when needed to improve startup time
 # from data import forum_scraper
 

@@ -20,12 +20,13 @@ import json
 from tqdm import tqdm
 
 # Add project root to path for imports
-sys.path.append(str(Path(__file__).parent))
+project_root = Path(__file__).parent.parent
+sys.path.append(str(project_root))
 
 # Import project modules
-from embedder import create_embeddings, load_documents, save_embeddings
-from indexer import load_embeddings, build_faiss_index, save_faiss_index
-from agent.rag import RAGAssistant
+from src.rag.embedder import create_embeddings, load_documents, save_embeddings
+from src.rag.indexer import load_embeddings, build_faiss_index, save_faiss_index
+from src.rag.assistant import RAGAssistant
 from config import settings
 
 # Configure logging
@@ -33,7 +34,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("rag_retraining.log"),
+        logging.FileHandler("logs/rag_retraining.log"),
         logging.StreamHandler()
     ]
 )
@@ -206,12 +207,12 @@ def test_rag_system():
             
         except Exception as e:
             logger.error(f"Error testing question '{question}': {str(e)}")
-    
-    # Save test results
-    with open("rag_test_results.json", 'w', encoding='utf-8') as f:
+      # Save test results
+    os.makedirs("logs", exist_ok=True)
+    with open("logs/rag_test_results.json", 'w', encoding='utf-8') as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
     
-    logger.info("RAG system testing completed. Results saved to rag_test_results.json")
+    logger.info("RAG system testing completed. Results saved to logs/rag_test_results.json")
     assistant.shutdown()
     return True
 

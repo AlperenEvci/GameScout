@@ -29,7 +29,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("embedding.log"),
+        logging.FileHandler("logs/embedding.log"),
         logging.StreamHandler()
     ]
 )

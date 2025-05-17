@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# query.py - Query the FAISS vector database for relevant BG3 information
+# retriever.py - Query the FAISS vector database for relevant BG3 information
 
 import os
 import pickle
 import logging
 import argparse
-# FAISS için log seviyesini düzenle (GPU hata mesajını gizlemek için)
+# Adjust FAISS log level (to suppress GPU error message)
 logging.getLogger('faiss').setLevel(logging.ERROR)
 import faiss
 from sentence_transformers import SentenceTransformer
