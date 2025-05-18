@@ -1,0 +1,88 @@
+{
+  "name": "Blighted Village",
+  "description": "",
+  "points_of_interest": [
+    {
+      "name": "Apothecary's Cellar",
+      "description": ""
+    },
+    {
+      "name": "Whispering Depth",
+      "description": ""
+    },
+    {
+      "name": "Yel Değirmeni",
+      "description": "Değerli eşyalar ve gizemli bir kitap için mahzeni kontrol edin."
+    },
+    {
+      "name": "Eczane",
+      "description": "İksirler ve tomarlar için malzemeler içerir. Tuzaklara dikkat edin."
+    },
+    {
+      "name": "Rün Taşı",
+      "description": "Güçlü büyülü taş. Birden çok şekilde kullanılabilir."
+    },
+    {
+      "name": "Yıkılmış Evler",
+      "description": "Yok edilebilir nesnelerde birçok gizli eşya."
+    }
+  ],
+  "quests": [
+    {
+      "name": "Rescue the gnome",
+      "description": ""
+    },
+    {
+      "name": "Finish the Masterwork weapon",
+      "description": ""
+    },
+    {
+      "name": "Search the Cellar",
+      "description": ""
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Barcus Wroot",
+      "description": ""
+    },
+    {
+      "name": "Buthir",
+      "description": ""
+    },
+    {
+      "name": "Chock",
+      "description": ""
+    },
+    {
+      "name": "Fank",
+      "description": ""
+    },
+    {
+      "name": "Fezzerk",
+      "description": ""
+    },
+    {
+      "name": "Grukkoh",
+      "description": ""
+    },
+    {
+      "name": "Lump the Enlightened",
+      "description": ""
+    },
+    {
+      "name": "Ornate Mirror",
+      "description": ""
+    },
+    {
+      "name": "Scratch",
+      "description": ""
+    }
+  ],
+  "enemies": [],
+  "loot": [],
+  "map_coordinates": {
+    "x": 320,
+    "y": 150
+  }
+}

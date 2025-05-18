@@ -1,0 +1,71 @@
+{
+  "name": "Emerald Grove",
+  "description": "",
+  "points_of_interest": [
+    {
+      "name": "Sacred Pool",
+      "description": ""
+    },
+    {
+      "name": "The Hollow",
+      "description": ""
+    },
+    {
+      "name": "Makeshift Prison",
+      "description": ""
+    },
+    {
+      "name": "Druid Çemberi",
+      "description": "Druidlerin ritüellerini gerçekleştirdiği korunun merkezi. Burada Rath ile konuşun."
+    },
+    {
+      "name": "Tiefling Kampı",
+      "description": "Elturel'den mülteciler. Zevlor onlara liderlik eder ve çeşitli görevleri vardır."
+    },
+    {
+      "name": "Gizli Giriş",
+      "description": "Bir şelalenin arkasında Underdark'a giden gizli giriş."
+    },
+    {
+      "name": "İç Mabet",
+      "description": "Halsin geri döndüğünde bulunabileceği yer. Korunun eserlerini barındırır."
+    }
+  ],
+  "quests": [
+    {
+      "name": "Save the Refugees",
+      "description": ""
+    },
+    {
+      "name": "Save Arabella",
+      "description": ""
+    },
+    {
+      "name": "Find a Cure",
+      "description": ""
+    },
+    {
+      "name": "Investigate the Beach",
+      "description": ""
+    },
+    {
+      "name": "Save the First Druid",
+      "description": ""
+    },
+    {
+      "name": "Defeat the Goblins",
+      "description": ""
+    },
+    {
+      "name": "Find the Nightsong",
+      "description": ""
+    }
+  ],
+  "npcs": [],
+  "enemies": [],
+  "loot": [],
+  "map_coordinates": {
+    "x": 230,
+    "y": 175
+  }
+}

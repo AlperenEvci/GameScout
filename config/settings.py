@@ -2,6 +2,12 @@
 
 import os
 import shutil
+import sys
+
+# Add project root to path to enable importing from src
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 from dotenv import load_dotenv
 
 # .env dosyasından değerleri yükle (eğer varsa)
@@ -110,6 +116,88 @@ HUD_TRANSPARENCY = 0.85  # Daha iyi görünürlük için 0.9'dan 0.85'e değişt
 # --- Logging ---
 LOG_FILE = "gamescout.log"
 LOG_LEVEL = "INFO" # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# --- Game Regions ---
+# Oyun bölgeleri ve koordinat bilgileri
+GAME_REGIONS = {
+    "Ravaged Beach": {
+        "points_of_interest": [
+            {"name": "Nautiloid Çarpma Bölgesi", "description": "Zihin Yüzücüsü gemisi buraya düştü. Hayatta kalanları ve kullanışlı eşyaları arayın."},
+            {"name": "Sahil Mağarası", "description": "Bazı temel malzemeler ve ilk yoldaş fırsatı bulunan küçük bir mağara."},
+            {"name": "ABD Çarpma Bölgesi", "description": "Tehlikeler ve ganimetlerle dolu başka bir düşmüş gemi bölümü."}
+        ],
+        "map_coordinates": {"x": 120, "y": 85}
+    },
+    "Emerald Grove": {
+        "points_of_interest": [
+            {"name": "Druid Çemberi", "description": "Druidlerin ritüellerini gerçekleştirdiği korunun merkezi. Burada Rath ile konuşun."},
+            {"name": "Tiefling Kampı", "description": "Elturel'den mülteciler. Zevlor onlara liderlik eder ve çeşitli görevleri vardır."},
+            {"name": "Gizli Giriş", "description": "Bir şelalenin arkasında Underdark'a giden gizli giriş."},
+            {"name": "İç Mabet", "description": "Halsin geri döndüğünde bulunabileceği yer. Korunun eserlerini barındırır."}
+        ],
+        "map_coordinates": {"x": 230, "y": 175} 
+    },
+    "Blighted Village": {
+        "points_of_interest": [
+            {"name": "Yel Değirmeni", "description": "Değerli eşyalar ve gizemli bir kitap için mahzeni kontrol edin."},
+            {"name": "Eczane", "description": "İksirler ve tomarlar için malzemeler içerir. Tuzaklara dikkat edin."},
+            {"name": "Rün Taşı", "description": "Güçlü büyülü taş. Birden çok şekilde kullanılabilir."},
+            {"name": "Yıkılmış Evler", "description": "Yok edilebilir nesnelerde birçok gizli eşya."}
+        ],
+        "map_coordinates": {"x": 320, "y": 150}
+    },
+    "Underdark": {
+        "points_of_interest": [
+            {"name": "Myconid Kolonisi", "description": "Müttefik olabilecek barışçıl mantar insanlar. Hükümdar Spaw ile konuşun."},
+            {"name": "Selûnite Karakolu", "description": "Tanrıça Selûne'nin takipçileri. Önemli görev eşyaları içerir."},
+            {"name": "Bulette Mağarası", "description": "Tehlikeli bir bulette'nin evi. İçinde yüksek seviyeli ganimetler var."},
+            {"name": "Grymforge Girişi", "description": "Grymforge'a giden yol. Duergar tarafından korunur."}
+        ],
+        "map_coordinates": {"x": 280, "y": 320}
+    },
+    "Moonrise Towers": {
+        "points_of_interest": [
+            {"name": "Ana Kapı", "description": "Ağır korunan giriş. Alternatif girişler mevcut."},
+            {"name": "Zindan Hücreleri", "description": "Dikkat çekici mahkumlar ve ana olay örgüsü hakkında önemli bilgiler içerir."},
+            {"name": "Merkez Oda", "description": "Ritüelin gerçekleştiği yer. Kritik hikaye konumu."},
+            {"name": "Gizli Kütüphane", "description": "Değerli hikaye kitapları ve büyülü eşyalar bulunan gizli alan."}
+        ],
+        "map_coordinates": {"x": 420, "y": 260}
+    },
+    "Shadowfell": {
+        "points_of_interest": [
+            {"name": "Shar'ın Tapınağı", "description": "Karanlık tanrıçasına tapınma merkezi. Tehlikeli ama değerli ganimetler."},
+            {"name": "Terk Edilmiş Kamp", "description": "Bölge hakkında ipuçları bulunan eski kaşif kampı."},
+            {"name": "Gölge Portalı", "description": "Diğer alanlara hızlıca erişmek için kullanılabilir."}
+        ],
+        "map_coordinates": {"x": 380, "y": 340}
+    },
+    "Grymforge": {
+        "points_of_interest": [
+            {"name": "Grym Demirhanesi", "description": "Benzersiz zanaat olanaklarına sahip antik demirci ocağı."},
+            {"name": "Duergar Karakolu", "description": "Olası müttefikler veya düşmanlarla duergar yerleşimi."},
+            {"name": "Derin Havuz", "description": "Gizli bir geçit ve değerli kaynaklar içerir."}
+        ],
+        "map_coordinates": {"x": 340, "y": 380}
+    },
+    "Last Light Inn": {
+        "points_of_interest": [
+            {"name": "Ana Salon", "description": "Gölge-lanetli topraklarda güvenli sığınak. Burada önemli NPC'ler toplanır."},
+            {"name": "Isobel'in Odası", "description": "Isobel'i bulabileceğiniz ve hana bağlantısı hakkında bilgi edinebileceğiniz yer."},
+            {"name": "Gizli Mahzen", "description": "Özel eşyalar ve bilgiler içeren gizli alan."}
+        ],
+        "map_coordinates": {"x": 460, "y": 280}
+    },
+    "Baldur's Gate": {
+        "points_of_interest": [
+            {"name": "Aşağı Şehir", "description": "Birçok sır ve yan görev içeren fakir bölge."},
+            {"name": "Yukarı Şehir", "description": "Önemli politik NPC'lerle zengin bölge."},
+            {"name": "Limanlar", "description": "Suç ve kaçakçılık faaliyetleriyle dolu kıyı bölgesi."},
+            {"name": "Saray", "description": "Politik entrikalar ve önemli kararların alındığı şehir merkezi."}
+        ],
+        "map_coordinates": {"x": 520, "y": 380}
+    }
+}
 
 # --- Utility Functions ---
 def get_tesseract_path():

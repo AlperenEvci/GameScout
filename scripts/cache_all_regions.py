@@ -11,8 +11,9 @@ import time
 # Ana dizini (gamescout/) Python yoluna ekle
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from data.map_data import GAME_REGIONS, fetch_fextralife_map_data, save_to_cache
-from utils.helpers import get_logger
+from config.settings import GAME_REGIONS
+from src.data.sources.map_data import fetch_fextralife_map_data, save_to_cache
+from src.utils.helpers import get_logger
 
 logger = get_logger(__name__)
 
@@ -42,10 +43,10 @@ def cache_all_regions():
                 success = save_to_cache(region_name, region_data)
                 if success:
                     cached_regions += 1
-                    logger.info(f"✓ Bölge önbelleğe alındı: {region_name}")
+                    logger.info(f"[OK] Bölge önbelleğe alındı: {region_name}")
                 else:
                     failed_regions.append(region_name)
-                    logger.error(f"✗ Bölge önbelleğe alınamadı: {region_name}")
+                    logger.error(f"[FAIL] Bölge önbelleğe alınamadı: {region_name}")
             else:
                 # Bölge verisi alınamadı, yerel veriyi kullan
                 if region_name in GAME_REGIONS:
@@ -53,20 +54,20 @@ def cache_all_regions():
                     success = save_to_cache(region_name, local_data)
                     if success:
                         cached_regions += 1
-                        logger.info(f"✓ Bölge yerel veriden önbelleğe alındı: {region_name}")
+                        logger.info(f"[OK] Bölge yerel veriden önbelleğe alındı: {region_name}")
                     else:
                         failed_regions.append(region_name)
-                        logger.error(f"✗ Bölge önbelleğe alınamadı: {region_name}")
+                        logger.error(f"[FAIL] Bölge önbelleğe alınamadı: {region_name}")
                 else:
                     failed_regions.append(region_name)
-                    logger.error(f"✗ Veri bulunamadı: {region_name}")
+                    logger.error(f"[FAIL] Veri bulunamadı: {region_name}")
             
             # Sunucuları rahatsız etmemek için biraz bekle
             time.sleep(1)
             
         except Exception as e:
             failed_regions.append(region_name)
-            logger.error(f"✗ Bölge önbelleğe alma işlemi sırasında hata: {region_name}: {e}")
+            logger.error(f"[FAIL] Bölge önbelleğe alma işlemi sırasında hata: {region_name}: {e}")
     
     # Sonuçları raporla
     logger.info(f"Önbelleğe alma işlemi tamamlandı. "

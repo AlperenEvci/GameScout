@@ -10,33 +10,43 @@ import logging
 import re
 import os
 from typing import Dict, Any, Optional
-from config import settings
 
 # --- Logging Configuration ---
-def configure_logging() -> None:
+def configure_logging(log_file=None, log_level=None) -> None:
     """
     Configure the global logging settings for the application.
     
     Creates log directory if it doesn't exist and sets up the root logger
     with appropriate handlers and formatting.
+    
+    Args:
+        log_file: Path to the log file. If None, defaults to "gamescout.log"
+        log_level: Logging level. If None, defaults to "INFO"
     """
+    # Default values to avoid circular imports
+    if log_file is None:
+        log_file = "gamescout.log"
+    
+    if log_level is None:
+        log_level = "INFO"
+        
     # Ensure log directory exists
-    log_dir = os.path.dirname(settings.LOG_FILE)
-    if not os.path.exists(log_dir) and log_dir:
+    log_dir = os.path.dirname(log_file)
+    if log_dir and not os.path.exists(log_dir):
         os.makedirs(log_dir)
     
     # Configure the root logger
     logging.basicConfig(
-        level=settings.LOG_LEVEL,
+        level=log_level,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(settings.LOG_FILE),
+            logging.FileHandler(log_file),
             logging.StreamHandler()  # Also print logs to console
         ]
     )
 
-# Configure logging when this module is imported
-configure_logging()
+# Only configure basic logging initially
+logging.basicConfig(level="INFO", format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 def get_logger(name: str) -> logging.Logger:
     """
@@ -49,6 +59,19 @@ def get_logger(name: str) -> logging.Logger:
         A configured logger instance
     """
     return logging.getLogger(name)
+
+# This will be called from main.py after all imports are complete
+def setup_logging():
+    """
+    Set up proper logging with settings from config.
+    This should be called from main.py after all modules are imported.
+    """
+    try:
+        from config import settings
+        configure_logging(settings.LOG_FILE, settings.LOG_LEVEL)
+    except (ImportError, AttributeError):
+        # Fallback if settings import fails
+        configure_logging()
 
 # --- Text Processing ---
 

@@ -95,17 +95,28 @@ class GameState:
         text = self._clean_ocr_text(text)
         
         # Region detection
-        for region_name in settings.GAME_REGIONS:
-            if self._fuzzy_region_match(text, region_name):
-                if self.current_region != region_name:
-                    self.previous_region = self.current_region
-                    self.current_region = region_name
-                    self.last_region_change = time.time()
-                    logger.info(f"Region changed: {self.current_region}")
-                    
-                    # Update location data for the new region
-                    self.update_location_data()
-                break
+        try:
+            # First try to use settings.GAME_REGIONS
+            game_regions = settings.GAME_REGIONS
+            if not game_regions:
+                # Fallback to importing directly if settings import failed
+                from src.data.sources.map_data import GAME_REGIONS
+                game_regions = GAME_REGIONS
+                
+            for region_name in game_regions:
+                if self._fuzzy_region_match(text, region_name):
+                    if self.current_region != region_name:
+                        self.previous_region = self.current_region
+                        self.current_region = region_name
+                        self.last_region_change = time.time()
+                        logger.info(f"Region changed: {self.current_region}")
+                        
+                        # Update location data for the new region
+                        self.update_location_data()
+                    break
+        except (AttributeError, ImportError) as e:
+            logger.error(f"Error accessing game regions: {e}")
+            # Continue execution even if region detection fails
                 
         # Check for quest updates
         if "quest" in text.lower() and "update" in text.lower():
@@ -278,6 +289,45 @@ def get_contextual_tips(game_state):
         game_state.add_recent_tip(selected_tip)
         game_state.last_tip_time = current_time
         game_state.last_tip_category = category
+    
+    return recommendations
+
+def generate_recommendations(game_state):
+    """
+    Generates recommendations based on current game state.
+    This is the main agent logic that provides contextual tips.
+    
+    Args:
+        game_state: Current GameState object
+        
+    Returns:
+        List of recommendation strings
+    """
+    logger.debug(f"Generating recommendations for state: {game_state}")
+    
+    # Start with contextual tips
+    recommendations = get_contextual_tips(game_state)
+    
+    # If the region is known, add region-specific tips
+    if game_state.current_region and bg3_kb:
+        # Limit frequency of knowledge base queries
+        current_time = time.time()
+        time_since_last = current_time - game_state.last_tip_time
+        
+        # No more than 1 knowledge query every 3 minutes
+        if time_since_last >= 180:  # 3 minutes
+            try:
+                query = f"What should a {game_state.character_class} know about {game_state.current_region}?"
+                kb_results = bg3_kb.search(query, top_k=3)
+                
+                if kb_results and len(kb_results) > 0:
+                    # Process only the most relevant result
+                    # The search method returns dictionaries with content field
+                    recommendation = f"Tip: {kb_results[0]['content'].strip()}"
+                    recommendations.append(recommendation)
+                    game_state.last_tip_time = current_time
+            except Exception as e:
+                logger.error(f"Error querying knowledge base: {str(e)}")
     
     return recommendations
 

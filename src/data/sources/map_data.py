@@ -4,9 +4,28 @@ import requests
 from bs4 import BeautifulSoup
 import json
 from src.utils.helpers import get_logger
-from config import settings
 import os
 import time
+
+# Only import specific settings to avoid circular imports
+try:
+    from config.settings import APP_NAME, VERSION, SCRAPER_USER_AGENT, GAME_REGIONS
+except ImportError:
+    APP_NAME = "GameScout"  
+    VERSION = "0.1.0"
+    SCRAPER_USER_AGENT = f"{APP_NAME}/{VERSION} (GameScout Application)"
+    # Define a minimal version of GAME_REGIONS if not imported
+    GAME_REGIONS = {
+        "Ravaged Beach": {"points_of_interest": [], "map_coordinates": {"x": 120, "y": 85}},
+        "Emerald Grove": {"points_of_interest": [], "map_coordinates": {"x": 230, "y": 175}},
+        "Blighted Village": {"points_of_interest": [], "map_coordinates": {"x": 320, "y": 150}},
+        "Underdark": {"points_of_interest": [], "map_coordinates": {"x": 280, "y": 320}},
+        "Moonrise Towers": {"points_of_interest": [], "map_coordinates": {"x": 420, "y": 260}},
+        "Shadowfell": {"points_of_interest": [], "map_coordinates": {"x": 380, "y": 340}},
+        "Grymforge": {"points_of_interest": [], "map_coordinates": {"x": 340, "y": 380}},
+        "Last Light Inn": {"points_of_interest": [], "map_coordinates": {"x": 460, "y": 280}},
+        "Baldur's Gate": {"points_of_interest": [], "map_coordinates": {"x": 520, "y": 380}}
+    }
 
 logger = get_logger(__name__)
 
@@ -175,7 +194,7 @@ def fetch_fextralife_map_data(region_name):
     logger.info(f"Fextralife URL'sinden doğrudan çekme girişimi: {region_url}")
     
     try:
-        headers = {'User-Agent': settings.SCRAPER_USER_AGENT}
+        headers = {'User-Agent': SCRAPER_USER_AGENT}
         response = requests.get(region_url, headers=headers, timeout=10)
         
         # Sayfa bulunamazsa (404), hata logla ve yerel veriyi dene

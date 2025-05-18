@@ -1,0 +1,104 @@
+{
+  "name": "Grymforge",
+  "description": "",
+  "points_of_interest": [
+    {
+      "name": "Adamantine Forge",
+      "description": ""
+    },
+    {
+      "name": "Grym Demirhanesi",
+      "description": "Benzersiz zanaat olanaklarına sahip antik demirci ocağı."
+    },
+    {
+      "name": "Duergar Karakolu",
+      "description": "Olası müttefikler veya düşmanlarla duergar yerleşimi."
+    },
+    {
+      "name": "Derin Havuz",
+      "description": "Gizli bir geçit ve değerli kaynaklar içerir."
+    }
+  ],
+  "quests": [
+    {
+      "name": "Help the Cursed Monk",
+      "description": ""
+    },
+    {
+      "name": "Save the Grymforge Gnomes",
+      "description": ""
+    },
+    {
+      "name": "The Adamantine Forge\n\nGet Past the Rubble",
+      "description": ""
+    },
+    {
+      "name": "Get Past the Rubble",
+      "description": ""
+    },
+    {
+      "name": "Free True Soul Nere\n\nBlind the Absolute\nFind Explosives",
+      "description": ""
+    },
+    {
+      "name": "Blind the Absolute",
+      "description": ""
+    },
+    {
+      "name": "Find Explosives",
+      "description": ""
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Brathwen",
+      "description": ""
+    },
+    {
+      "name": "Corsair Greymon",
+      "description": ""
+    },
+    {
+      "name": "Elder Brithvar",
+      "description": ""
+    },
+    {
+      "name": "Herdmaster Skarjall",
+      "description": ""
+    },
+    {
+      "name": "Lunkbug",
+      "description": ""
+    },
+    {
+      "name": "Philomeen",
+      "description": ""
+    },
+    {
+      "name": "Sergeant Thrinn",
+      "description": ""
+    },
+    {
+      "name": "Skickpit",
+      "description": ""
+    },
+    {
+      "name": "Stonemason Kith",
+      "description": ""
+    },
+    {
+      "name": "True Soul Nere",
+      "description": ""
+    },
+    {
+      "name": "Ward Magmar",
+      "description": ""
+    }
+  ],
+  "enemies": [],
+  "loot": [],
+  "map_coordinates": {
+    "x": 340,
+    "y": 380
+  }
+}

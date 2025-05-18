@@ -14,3 +14,150 @@
 2025-04-19 01:28:19,330 - INFO - Saved 1121 embeddings to vector_db\embeddings.npy
 2025-04-19 01:28:19,330 - INFO - Saved metadata to vector_db\metadata.json
 2025-04-19 01:28:19,330 - INFO - Document embedding completed successfully
+2025-05-18 02:36:12,870 - INFO - Loading faiss with AVX512 support.
+2025-05-18 02:36:12,870 - INFO - Could not load library with AVX512 support due to:
+ModuleNotFoundError("No module named 'faiss.swigfaiss_avx512'")
+2025-05-18 02:36:12,871 - INFO - Loading faiss with AVX2 support.
+2025-05-18 02:36:12,890 - INFO - Successfully loaded faiss with AVX2 support.
+2025-05-18 02:36:12,896 - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+2025-05-18 02:36:12,964 - INFO - Starting knowledge base rebuild process...
+2025-05-18 02:36:12,964 - INFO - Loading documents...
+2025-05-18 02:36:12,968 - INFO - Loading 1121 documents...
+2025-05-18 02:36:13,158 - INFO - Successfully loaded 1121 documents
+2025-05-18 02:36:13,158 - INFO - Loaded 1121 documents.
+2025-05-18 02:36:13,158 - INFO - Creating embeddings...
+2025-05-18 02:36:13,158 - INFO - Chunking 1121 documents...
+2025-05-18 02:36:13,202 - INFO - Created 26666 chunks from 1121 documents
+2025-05-18 02:36:13,320 - INFO - Loading embedding model: BAAI/bge-small-en-v1.5
+2025-05-18 02:36:13,324 - INFO - Use pytorch device_name: cpu
+2025-05-18 02:36:13,324 - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-en-v1.5
+2025-05-18 02:36:16,203 - INFO - Generating embeddings for 26666 documents...
+2025-05-18 02:48:08,545 - INFO - Created embeddings with dimension: 384
+2025-05-18 02:48:08,556 - INFO - Created embeddings with shape (26666, 384)
+2025-05-18 02:48:08,556 - INFO - Saving embeddings and metadata...
+2025-05-18 02:48:09,054 - INFO - Saved 26666 embeddings to vector_db\embeddings.npy
+2025-05-18 02:48:09,054 - INFO - Saved metadata to vector_db\metadata.json
+2025-05-18 02:48:09,055 - INFO - Building FAISS index...
+2025-05-18 02:48:09,055 - INFO - Building FAISS index with 26666 vectors of dimension 384
+2025-05-18 02:48:09,065 - INFO - FAISS index built in 0.01s with 26666 vectors
+2025-05-18 02:48:09,065 - INFO - Saving FAISS index...
+2025-05-18 02:48:09,092 - INFO - FAISS index saved to vector_db\bg3_knowledge.faiss in 0.03s
+2025-05-18 02:48:09,112 - INFO - Metadata saved to vector_db\bg3_knowledge_metadata.pkl
+2025-05-18 02:48:09,112 - INFO - Knowledge base rebuild completed successfully!
+2025-05-18 02:48:09,119 - INFO - Optimizing FAISS index...
+2025-05-18 02:48:09,145 - INFO - Loaded embeddings with shape: (26666, 384)
+2025-05-18 02:48:09,266 - INFO - Loaded metadata for 26666 documents
+2025-05-18 02:48:09,266 - INFO - Optimizing index with 26666 vectors of dimension 384
+2025-05-18 02:48:09,268 - INFO - Training IVF index with 653 clusters...
+2025-05-18 02:48:09,905 - INFO - Saving optimized index...
+2025-05-18 02:48:09,936 - INFO - Index optimization completed successfully!
+2025-05-18 02:48:09,953 - INFO - Testing RAG system with sample questions...
+2025-05-18 02:48:09,953 - INFO - Loading FAISS index from vector_db\bg3_knowledge.faiss
+2025-05-18 02:48:09,984 - INFO - Loading metadata from vector_db\bg3_knowledge_metadata.pkl
+2025-05-18 02:48:10,021 - INFO - Loading embedding model: BAAI/bge-small-en-v1.5
+2025-05-18 02:48:10,024 - INFO - Use pytorch device_name: cpu
+2025-05-18 02:48:10,024 - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-en-v1.5
+2025-05-18 02:48:12,595 - INFO - Knowledge base initialized with 26666 documents
+2025-05-18 02:48:12,596 - INFO - Starting HUD thread.
+2025-05-18 02:48:12,596 - INFO - RAG Asistaný baþlatýldý
+2025-05-18 02:48:12,649 - INFO - Q: Who is Shadowheart?
+2025-05-18 02:48:12,649 - INFO - Kullanýcý sorusu: Who is Shadowheart?
+2025-05-18 02:48:12,650 - INFO - 'Who is Shadowheart?' için bilgi tabanýnda arama yapýlýyor...
+2025-05-18 02:48:12,659 - INFO - HUD window created. Starting main loop.
+2025-05-18 02:48:26,592 - ERROR - Error searching knowledge base: 'document_id'
+2025-05-18 02:48:26,592 - INFO - 0 sonuç bulundu
+2025-05-18 02:48:26,593 - INFO - A: Bu konu hakkýnda bilgi tabanýmda yeterli bilgi bulunamadý. Lütfen sorunuzu farklý þekilde sorun veya daha genel bir konuyla ilgili bilgi isteyin.
+2025-05-18 02:48:29,593 - INFO - Q: What quests can I find in Emerald Grove?
+2025-05-18 02:48:29,593 - INFO - Kullanýcý sorusu: What quests can I find in Emerald Grove?
+2025-05-18 02:48:29,593 - INFO - 'What quests can I find in Emerald Grove?' için bilgi tabanýnda arama yapýlýyor...
+2025-05-18 02:48:43,873 - ERROR - Error searching knowledge base: 'document_id'
+2025-05-18 02:48:43,874 - INFO - 0 sonuç bulundu
+2025-05-18 02:48:43,874 - INFO - Ýlk arama baþarýsýz, þununla yeniden deneniyor: 'What quests find'
+2025-05-18 02:48:43,874 - INFO - 'What quests find' için bilgi tabanýnda arama yapýlýyor...
+2025-05-18 02:48:57,563 - ERROR - Error searching knowledge base: 'document_id'
+2025-05-18 02:48:57,563 - INFO - 0 sonuç bulundu
+2025-05-18 02:48:57,563 - INFO - A: Bu konu hakkýnda bilgi tabanýmda yeterli bilgi bulunamadý. Lütfen sorunuzu farklý þekilde sorun veya daha genel bir konuyla ilgili bilgi isteyin.
+2025-05-18 02:49:00,563 - INFO - Q: How does the combat system work in Baldur's Gate 3?
+2025-05-18 02:49:00,563 - INFO - Kullanýcý sorusu: How does the combat system work in Baldur's Gate 3?
+2025-05-18 02:49:00,563 - INFO - 'How does the combat system work in Baldur's Gate 3?' için bilgi tabanýnda arama yapýlýyor...
+2025-05-18 02:49:14,833 - ERROR - Error searching knowledge base: 'document_id'
+2025-05-18 02:49:14,833 - INFO - 0 sonuç bulundu
+2025-05-18 02:49:14,833 - INFO - Ýlk arama baþarýsýz, þununla yeniden deneniyor: 'does combat system'
+2025-05-18 02:49:14,833 - INFO - 'does combat system' için bilgi tabanýnda arama yapýlýyor...
+2025-05-18 02:49:28,741 - ERROR - Error searching knowledge base: 'document_id'
+2025-05-18 02:49:28,742 - INFO - 0 sonuç bulundu
+2025-05-18 02:49:28,742 - INFO - A: Bu konu hakkýnda bilgi tabanýmda yeterli bilgi bulunamadý. Lütfen sorunuzu farklý þekilde sorun veya daha genel bir konuyla ilgili bilgi isteyin.
+2025-05-18 02:49:31,743 - INFO - Q: Tell me about the different classes in BG3
+2025-05-18 02:49:31,743 - INFO - Kullanýcý sorusu: Tell me about the different classes in BG3
+2025-05-18 02:49:31,744 - INFO - 'Tell me about the different classes in BG3' için bilgi tabanýnda arama yapýlýyor...
+2025-05-18 02:49:45,892 - ERROR - Error searching knowledge base: 'document_id'
+2025-05-18 02:49:45,893 - INFO - 0 sonuç bulundu
+2025-05-18 02:49:45,893 - INFO - Ýlk arama baþarýsýz, þununla yeniden deneniyor: 'Tell about different'
+2025-05-18 02:49:45,893 - INFO - 'Tell about different' için bilgi tabanýnda arama yapýlýyor...
+2025-05-18 02:49:59,784 - ERROR - Error searching knowledge base: 'document_id'
+2025-05-18 02:49:59,784 - INFO - 0 sonuç bulundu
+2025-05-18 02:49:59,784 - INFO - A: Bu konu hakkýnda bilgi tabanýmda yeterli bilgi bulunamadý. Lütfen sorunuzu farklý þekilde sorun veya daha genel bir konuyla ilgili bilgi isteyin.
+2025-05-18 02:50:02,785 - INFO - Q: What are the best weapons for a Paladin?
+2025-05-18 02:50:02,785 - INFO - Kullanýcý sorusu: What are the best weapons for a Paladin?
+2025-05-18 02:50:02,786 - INFO - 'What are the best weapons for a Paladin?' için bilgi tabanýnda arama yapýlýyor...
+2025-05-18 02:50:17,446 - ERROR - Error searching knowledge base: 'document_id'
+2025-05-18 02:50:17,446 - INFO - 0 sonuç bulundu
+2025-05-18 02:50:17,447 - INFO - Ýlk arama baþarýsýz, þununla yeniden deneniyor: 'What best weapons'
+2025-05-18 02:50:17,447 - INFO - 'What best weapons' için bilgi tabanýnda arama yapýlýyor...
+2025-05-18 02:50:31,588 - ERROR - Error searching knowledge base: 'document_id'
+2025-05-18 02:50:31,588 - INFO - 0 sonuç bulundu
+2025-05-18 02:50:31,589 - INFO - A: Bu konu hakkýnda bilgi tabanýmda yeterli bilgi bulunamadý. Lütfen sorunuzu farklý þekilde sorun veya daha genel bir konuyla ilgili bilgi isteyin.
+2025-05-18 02:50:34,598 - INFO - RAG system testing completed. Results saved to logs/rag_test_results.json
+2025-05-18 02:50:34,599 - INFO - HUD kapatýlýyor...
+2025-05-18 02:50:34,599 - INFO - HUD stop request received.
+2025-05-18 02:50:34,606 - INFO - HUD thread terminated.
+2025-05-18 02:50:34,607 - INFO - RAG Asistaný kapatýldý
+2025-05-18 02:56:05,275 - INFO - Loading faiss with AVX512 support.
+2025-05-18 02:56:05,276 - INFO - Could not load library with AVX512 support due to:
+ModuleNotFoundError("No module named 'faiss.swigfaiss_avx512'")
+2025-05-18 02:56:05,276 - INFO - Loading faiss with AVX2 support.
+2025-05-18 02:56:05,298 - INFO - Successfully loaded faiss with AVX2 support.
+2025-05-18 02:56:05,305 - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes. This is only an error if you're trying to use GPU Faiss.
+2025-05-18 02:56:05,348 - INFO - Testing RAG system with sample questions...
+2025-05-18 02:56:05,349 - INFO - Loading FAISS index from vector_db\bg3_knowledge.faiss
+2025-05-18 02:56:05,380 - INFO - Loading metadata from vector_db\bg3_knowledge_metadata.pkl
+2025-05-18 02:56:05,400 - INFO - Loading embedding model: BAAI/bge-small-en-v1.5
+2025-05-18 02:56:05,403 - INFO - Use pytorch device_name: cpu
+2025-05-18 02:56:05,404 - INFO - Load pretrained SentenceTransformer: BAAI/bge-small-en-v1.5
+2025-05-18 02:56:08,465 - INFO - Knowledge base initialized with 26666 documents
+2025-05-18 02:56:08,466 - INFO - Starting HUD thread.
+2025-05-18 02:56:08,466 - INFO - RAG Asistaný baþlatýldý
+2025-05-18 02:56:08,522 - INFO - Q: Who is Shadowheart?
+2025-05-18 02:56:08,522 - INFO - Kullanýcý sorusu: Who is Shadowheart?
+2025-05-18 02:56:08,522 - INFO - 'Who is Shadowheart?' için bilgi tabanýnda arama yapýlýyor...
+2025-05-18 02:56:08,531 - INFO - HUD window created. Starting main loop.
+2025-05-18 02:56:22,559 - ERROR - Error searching knowledge base: 'document_id'
+2025-05-18 02:56:22,559 - INFO - 0 sonuç bulundu
+2025-05-18 02:56:22,559 - INFO - A: Bu konu hakkýnda bilgi tabanýmda yeterli bilgi bulunamadý. Lütfen sorunuzu farklý þekilde sorun veya daha genel bir konuyla ilgili bilgi isteyin.
+2025-05-18 02:56:25,560 - INFO - Q: What quests can I find in Emerald Grove?
+2025-05-18 02:56:25,560 - INFO - Kullanýcý sorusu: What quests can I find in Emerald Grove?
+2025-05-18 02:56:25,561 - INFO - 'What quests can I find in Emerald Grove?' için bilgi tabanýnda arama yapýlýyor...
+2025-05-18 02:56:40,096 - ERROR - Error searching knowledge base: 'document_id'
+2025-05-18 02:56:40,097 - INFO - 0 sonuç bulundu
+2025-05-18 02:56:40,097 - INFO - Ýlk arama baþarýsýz, þununla yeniden deneniyor: 'What quests find'
+2025-05-18 02:56:40,097 - INFO - 'What quests find' için bilgi tabanýnda arama yapýlýyor...
+2025-05-18 02:56:54,193 - ERROR - Error searching knowledge base: 'document_id'
+2025-05-18 02:56:54,193 - INFO - 0 sonuç bulundu
+2025-05-18 02:56:54,194 - INFO - A: Bu konu hakkýnda bilgi tabanýmda yeterli bilgi bulunamadý. Lütfen sorunuzu farklý þekilde sorun veya daha genel bir konuyla ilgili bilgi isteyin.
+2025-05-18 02:56:57,195 - INFO - Q: How does the combat system work in Baldur's Gate 3?
+2025-05-18 02:56:57,195 - INFO - Kullanýcý sorusu: How does the combat system work in Baldur's Gate 3?
+2025-05-18 02:56:57,195 - INFO - 'How does the combat system work in Baldur's Gate 3?' için bilgi tabanýnda arama yapýlýyor...
+2025-05-18 02:57:11,689 - ERROR - Error searching knowledge base: 'document_id'
+2025-05-18 02:57:11,689 - INFO - 0 sonuç bulundu
+2025-05-18 02:57:11,690 - INFO - Ýlk arama baþarýsýz, þununla yeniden deneniyor: 'does combat system'
+2025-05-18 02:57:11,690 - INFO - 'does combat system' için bilgi tabanýnda arama yapýlýyor...
+2025-05-18 02:57:25,951 - ERROR - Error searching knowledge base: 'document_id'
+2025-05-18 02:57:25,952 - INFO - 0 sonuç bulundu
+2025-05-18 02:57:25,952 - INFO - A: Bu konu hakkýnda bilgi tabanýmda yeterli bilgi bulunamadý. Lütfen sorunuzu farklý þekilde sorun veya daha genel bir konuyla ilgili bilgi isteyin.
+2025-05-18 02:57:28,952 - INFO - Q: Tell me about the different classes in BG3
+2025-05-18 02:57:28,952 - INFO - Kullanýcý sorusu: Tell me about the different classes in BG3
+2025-05-18 02:57:28,952 - INFO - 'Tell me about the different classes in BG3' için bilgi tabanýnda arama yapýlýyor...
+2025-05-18 02:57:43,726 - ERROR - Error searching knowledge base: 'document_id'
+2025-05-18 02:57:43,726 - INFO - 0 sonuç bulundu
+2025-05-18 02:57:43,727 - INFO - Ýlk arama baþarýsýz, þununla yeniden deneniyor: 'Tell about different'
+2025-05-18 02:57:43,727 - INFO - 'Tell about different' için bilgi tabanýnda arama yapýlýyor...

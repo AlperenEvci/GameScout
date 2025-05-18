@@ -1,0 +1,168 @@
+{
+  "name": "Underdark",
+  "description": "",
+  "points_of_interest": [
+    {
+      "name": "Selunite Outpost",
+      "description": ""
+    },
+    {
+      "name": "Ebonlake Grotto",
+      "description": ""
+    },
+    {
+      "name": "Decrepit Village",
+      "description": ""
+    },
+    {
+      "name": "Dread Hollow",
+      "description": ""
+    },
+    {
+      "name": "The Festering Cove",
+      "description": ""
+    },
+    {
+      "name": "Arcane Tower",
+      "description": ""
+    },
+    {
+      "name": "Myconid Kolonisi",
+      "description": "Müttefik olabilecek barışçıl mantar insanlar. Hükümdar Spaw ile konuşun."
+    },
+    {
+      "name": "Selûnite Karakolu",
+      "description": "Tanrıça Selûne'nin takipçileri. Önemli görev eşyaları içerir."
+    },
+    {
+      "name": "Bulette Mağarası",
+      "description": "Tehlikeli bir bulette'nin evi. İçinde yüksek seviyeli ganimetler var."
+    },
+    {
+      "name": "Grymforge Girişi",
+      "description": "Grymforge'a giden yol. Duergar tarafından korunur."
+    }
+  ],
+  "quests": [
+    {
+      "name": "Avenge Glut's Circle",
+      "description": ""
+    },
+    {
+      "name": "Cure the Poisoned Gnome",
+      "description": ""
+    },
+    {
+      "name": "Defeat the Duergar Intruders",
+      "description": ""
+    },
+    {
+      "name": "Deliver Nere's Head",
+      "description": ""
+    },
+    {
+      "name": "Find the Missing Boots",
+      "description": ""
+    },
+    {
+      "name": "Find the Mushroom Picker",
+      "description": ""
+    },
+    {
+      "name": "Free True Soul Nere\n\nBlind the Absolute\nFind Explosives",
+      "description": ""
+    },
+    {
+      "name": "Blind the Absolute",
+      "description": ""
+    },
+    {
+      "name": "Find Explosives",
+      "description": ""
+    },
+    {
+      "name": "Save the Grymforge Gnomes",
+      "description": ""
+    },
+    {
+      "name": "The Adamantine Forge\n\nGet Past the Rubble",
+      "description": ""
+    },
+    {
+      "name": "Get Past the Rubble",
+      "description": ""
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Arcagh",
+      "description": ""
+    },
+    {
+      "name": "Artimetz",
+      "description": ""
+    },
+    {
+      "name": "Baelen Bonecloak",
+      "description": ""
+    },
+    {
+      "name": "Bernard",
+      "description": ""
+    },
+    {
+      "name": "Blurg",
+      "description": ""
+    },
+    {
+      "name": "Derryth Bonecloak",
+      "description": ""
+    },
+    {
+      "name": "Dhourn",
+      "description": ""
+    },
+    {
+      "name": "Filro the Forgotten",
+      "description": ""
+    },
+    {
+      "name": "Gekh Coal",
+      "description": ""
+    },
+    {
+      "name": "Glut",
+      "description": ""
+    },
+    {
+      "name": "Izwae",
+      "description": ""
+    },
+    {
+      "name": "Moy",
+      "description": ""
+    },
+    {
+      "name": "Omeluum",
+      "description": ""
+    },
+    {
+      "name": "Sovereign Spaw",
+      "description": ""
+    },
+    {
+      "name": "Tecothy",
+      "description": ""
+    },
+    {
+      "name": "Thulla",
+      "description": ""
+    }
+  ],
+  "enemies": [],
+  "loot": [],
+  "map_coordinates": {
+    "x": 280,
+    "y": 320
+  }
+}

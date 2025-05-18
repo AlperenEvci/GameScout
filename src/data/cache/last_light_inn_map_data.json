@@ -1,0 +1,140 @@
+{
+  "name": "Last Light Inn",
+  "description": "",
+  "points_of_interest": [
+    {
+      "name": "Last Light Inn - Cellar",
+      "description": ""
+    },
+    {
+      "name": "Ana Salon",
+      "description": "Gölge-lanetli topraklarda güvenli sığınak. Burada önemli NPC'ler toplanır."
+    },
+    {
+      "name": "Isobel'in Odası",
+      "description": "Isobel'i bulabileceğiniz ve hana bağlantısı hakkında bilgi edinebileceğiniz yer."
+    },
+    {
+      "name": "Gizli Mahzen",
+      "description": "Özel eşyalar ve bilgiler içeren gizli alan."
+    }
+  ],
+  "quests": [
+    {
+      "name": "Find Mol",
+      "description": ""
+    },
+    {
+      "name": "Find Zevlor",
+      "description": ""
+    },
+    {
+      "name": "Infiltrate Moonrise Towers",
+      "description": ""
+    },
+    {
+      "name": "Investigate the Selûnite Resistance",
+      "description": ""
+    },
+    {
+      "name": "Rescue the Grand Duke",
+      "description": ""
+    },
+    {
+      "name": "Rescue the Tieflings",
+      "description": ""
+    },
+    {
+      "name": "Rescue Wulbren",
+      "description": ""
+    },
+    {
+      "name": "The Pale Elf",
+      "description": ""
+    },
+    {
+      "name": "Wake up Art Cullagh",
+      "description": ""
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Alfira",
+      "description": ""
+    },
+    {
+      "name": "Art Cullagh",
+      "description": ""
+    },
+    {
+      "name": "Barcus Wroot",
+      "description": ""
+    },
+    {
+      "name": "Cerys",
+      "description": ""
+    },
+    {
+      "name": "Dammon",
+      "description": ""
+    },
+    {
+      "name": "Fist Ulthred",
+      "description": ""
+    },
+    {
+      "name": "Harper Bor",
+      "description": ""
+    },
+    {
+      "name": "Harper Elindale",
+      "description": ""
+    },
+    {
+      "name": "Harper Essius",
+      "description": ""
+    },
+    {
+      "name": "Harper Manus",
+      "description": ""
+    },
+    {
+      "name": "Harper Mijah",
+      "description": ""
+    },
+    {
+      "name": "Harper Skywin",
+      "description": ""
+    },
+    {
+      "name": "Ide",
+      "description": ""
+    },
+    {
+      "name": "Isobel",
+      "description": ""
+    },
+    {
+      "name": "Mattis",
+      "description": ""
+    },
+    {
+      "name": "Mol",
+      "description": ""
+    },
+    {
+      "name": "Quartermaster Talli",
+      "description": ""
+    },
+    {
+      "name": "Umi",
+      "description": ""
+    }
+  ],
+  "enemies": [],
+  "loot": [],
+  "map_coordinates": {
+    "x": 460,
+    "y": 280
+  }
+}

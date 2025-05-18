@@ -1,0 +1,20 @@
+{
+  "points_of_interest": [
+    {
+      "name": "Shar'ın Tapınağı",
+      "description": "Karanlık tanrıçasına tapınma merkezi. Tehlikeli ama değerli ganimetler."
+    },
+    {
+      "name": "Terk Edilmiş Kamp",
+      "description": "Bölge hakkında ipuçları bulunan eski kaşif kampı."
+    },
+    {
+      "name": "Gölge Portalı",
+      "description": "Diğer alanlara hızlıca erişmek için kullanılabilir."
+    }
+  ],
+  "map_coordinates": {
+    "x": 380,
+    "y": 340
+  }
+}

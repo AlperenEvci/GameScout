@@ -1,0 +1,88 @@
+{
+  "name": "Ravaged Beach",
+  "description": "",
+  "points_of_interest": [
+    {
+      "name": "Dank Crypt.",
+      "description": ""
+    },
+    {
+      "name": "Nautiloid Çarpma Bölgesi",
+      "description": "Zihin Yüzücüsü gemisi buraya düştü. Hayatta kalanları ve kullanışlı eşyaları arayın."
+    },
+    {
+      "name": "Sahil Mağarası",
+      "description": "Bazı temel malzemeler ve ilk yoldaş fırsatı bulunan küçük bir mağara."
+    },
+    {
+      "name": "ABD Çarpma Bölgesi",
+      "description": "Tehlikeler ve ganimetlerle dolu başka bir düşmüş gemi bölümü."
+    }
+  ],
+  "quests": [
+    {
+      "name": "Explore the Ruins",
+      "description": ""
+    },
+    {
+      "name": "Find a Cure",
+      "description": ""
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Astarion",
+      "description": ""
+    },
+    {
+      "name": "Damays",
+      "description": ""
+    },
+    {
+      "name": "Flaming Fist Marcus",
+      "description": ""
+    },
+    {
+      "name": "Gale",
+      "description": ""
+    },
+    {
+      "name": "Gimblebock",
+      "description": ""
+    },
+    {
+      "name": "Injured Mind Flayer",
+      "description": ""
+    },
+    {
+      "name": "Nymessa",
+      "description": ""
+    },
+    {
+      "name": "Lae'zel",
+      "description": ""
+    },
+    {
+      "name": "Shadowheart",
+      "description": ""
+    },
+    {
+      "name": "Stranded Fisher",
+      "description": ""
+    },
+    {
+      "name": "Taman",
+      "description": ""
+    },
+    {
+      "name": "Withers",
+      "description": ""
+    }
+  ],
+  "enemies": [],
+  "loot": [],
+  "map_coordinates": {
+    "x": 120,
+    "y": 85
+  }
+}

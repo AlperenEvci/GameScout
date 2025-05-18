@@ -1,0 +1,164 @@
+{
+  "name": "Moonrise Towers",
+  "description": "",
+  "points_of_interest": [
+    {
+      "name": "Moonrise Towers Prison",
+      "description": ""
+    },
+    {
+      "name": "Main Floor",
+      "description": ""
+    },
+    {
+      "name": "Kitchen",
+      "description": ""
+    },
+    {
+      "name": "Oubliette",
+      "description": ""
+    },
+    {
+      "name": "Moonrise Towers Rooftop",
+      "description": ""
+    },
+    {
+      "name": "Ana Kapı",
+      "description": "Ağır korunan giriş. Alternatif girişler mevcut."
+    },
+    {
+      "name": "Zindan Hücreleri",
+      "description": "Dikkat çekici mahkumlar ve ana olay örgüsü hakkında önemli bilgiler içerir."
+    },
+    {
+      "name": "Merkez Oda",
+      "description": "Ritüelin gerçekleştiği yer. Kritik hikaye konumu."
+    },
+    {
+      "name": "Gizli Kütüphane",
+      "description": "Değerli hikaye kitapları ve büyülü eşyalar bulunan gizli alan."
+    }
+  ],
+  "quests": [
+    {
+      "name": "Find Ketheric Thorm's Relic",
+      "description": ""
+    },
+    {
+      "name": "Find the Nightsong",
+      "description": ""
+    },
+    {
+      "name": "Rescue the Tieflings",
+      "description": ""
+    },
+    {
+      "name": "Rescue the Grand Duke",
+      "description": ""
+    },
+    {
+      "name": "Find Arabella's Parents",
+      "description": ""
+    },
+    {
+      "name": "Rescue Wulbren",
+      "description": ""
+    },
+    {
+      "name": "Infiltrate Moonrise Towers",
+      "description": ""
+    },
+    {
+      "name": "The Urge",
+      "description": ""
+    }
+  ],
+  "npcs": [
+    {
+      "name": "Araj Oblodra",
+      "description": ""
+    },
+    {
+      "name": "Barnabus",
+      "description": ""
+    },
+    {
+      "name": "Cal",
+      "description": ""
+    },
+    {
+      "name": "Dame Aylin",
+      "description": ""
+    },
+    {
+      "name": "Danis",
+      "description": ""
+    },
+    {
+      "name": "Fezzerk",
+      "description": ""
+    },
+    {
+      "name": "Glourik",
+      "description": ""
+    },
+    {
+      "name": "Jaheira",
+      "description": ""
+    },
+    {
+      "name": "Ketheric Thorm",
+      "description": ""
+    },
+    {
+      "name": "Lakrissa",
+      "description": ""
+    },
+    {
+      "name": "Lann Tarv",
+      "description": ""
+    },
+    {
+      "name": "Lia",
+      "description": ""
+    },
+    {
+      "name": "Linsella",
+      "description": ""
+    },
+    {
+      "name": "Mig",
+      "description": ""
+    },
+    {
+      "name": "Nightsong",
+      "description": ""
+    },
+    {
+      "name": "Radija",
+      "description": ""
+    },
+    {
+      "name": "Roah Moonglow",
+      "description": ""
+    },
+    {
+      "name": "The Warden",
+      "description": ""
+    },
+    {
+      "name": "Wulbren",
+      "description": ""
+    },
+    {
+      "name": "Z'rell",
+      "description": ""
+    }
+  ],
+  "enemies": [],
+  "loot": [],
+  "map_coordinates": {
+    "x": 420,
+    "y": 260
+  }
+}

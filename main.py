@@ -13,15 +13,19 @@ import queue
 import sys
 import os
 import threading
+from src.utils.helpers import get_logger, setup_logging
 from config import settings
-from src.utils.helpers import get_logger
 from src.capture import screen_capture, ocr_processor
-from src.rag import decision_engine
 from src.rag.assistant import RAGAssistant
 from src.ui import hud_display
+# Import decision_engine differently to access the GameState class and other functions
+import src.rag.decision_engine as decision_engine
 from scripts.cache_all_regions import cache_all_regions
 # Import forum_scraper only when needed to improve startup time
 # from data import forum_scraper
+
+# Set up proper logging now that all imports are complete
+setup_logging()
 
 # Initialize logger
 logger = get_logger(settings.APP_NAME)
@@ -93,7 +97,7 @@ def check_map_data_cache():
     
     Creates or updates any missing or outdated cache files.
     """
-    from data.map_data import GAME_REGIONS, get_cached_filename, is_cache_valid
+    from src.data.sources.map_data import GAME_REGIONS, get_cached_filename, is_cache_valid
     
     logger.info("Checking map data cache...")
     cache_dir = os.path.join(os.path.dirname(__file__), "cache")

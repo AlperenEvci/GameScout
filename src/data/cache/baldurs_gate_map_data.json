@@ -1,0 +1,52 @@
+{
+  "name": "Baldur's Gate",
+  "description": "",
+  "points_of_interest": [
+    {
+      "name": "Aşağı Şehir",
+      "description": "Birçok sır ve yan görev içeren fakir bölge."
+    },
+    {
+      "name": "Yukarı Şehir",
+      "description": "Önemli politik NPC'lerle zengin bölge."
+    },
+    {
+      "name": "Rivington",
+      "description": "Benzersiz dükkanlar ve görevlere sahip su kıyısı bölgesi."
+    },
+    {
+      "name": "Wyrm's Rock",
+      "description": "Şimdi tarikatçıların ele geçirdiği eski hapishane."
+    },
+    {
+      "name": "Philgrave Malikanesi",
+      "description": "Değerli bilgilere sahip önemli bir olay örgüsü karakterinin evi."
+    }
+  ],
+  "quests": [
+    {
+      "name": "??",
+      "description": ""
+    },
+    {
+      "name": "??",
+      "description": ""
+    }
+  ],
+  "npcs": [
+    {
+      "name": "??",
+      "description": ""
+    },
+    {
+      "name": "??",
+      "description": ""
+    }
+  ],
+  "enemies": [],
+  "loot": [],
+  "map_coordinates": {
+    "x": 520,
+    "y": 320
+  }
+}
